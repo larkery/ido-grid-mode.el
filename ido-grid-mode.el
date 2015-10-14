@@ -142,15 +142,14 @@ If you've added stuff to ido which operates on the current thing, pop it in this
 (defun igm-row-major () (eq 'rows ido-grid-mode-order))
 (defun igm-column-major () (not (igm-row-major)))
 
-(defmacro igm-defmemo (name args &rest rest)
-  `(progn
-     (defun ,name ,args ,@rest)
-     (fset (quote ,name)
-           (let ((fun (symbol-function (quote ,name)))
-                 (table (make-hash-table :test 'equal :weakness 'key)))
-             (lambda (&rest args)
-               (let ((existing (gethash args table)))
-                 (or existing (puthash args (apply fun args) table))))))))
+(defvar ign-invocation-cache
+  (make-hash-table :test 'equal :weakness 'key))
+
+(defun igm-mapcar (fn stuff)
+  (let* ((key (cons fn stuff))
+         (existing (gethash key ign-invocation-cache)))
+    (or existing (puthash key (mapcar fn stuff)
+                          ign-invocation-cache))))
 
 ;; functions to compute how many columns to use
 
@@ -223,7 +222,7 @@ Refers to `ido-grid-mode-order' to decide whether to try and fill rows or column
 
 ;; functions to layout text in a grid of known dimensions.
 
-(igm-defmemo igm-mapcar (fn stuff) (mapcar fn stuff))
+
 
 (defun igm-pad (string desired-length)
   "given a STRING, pad it to the DESIRED-LENGTH with spaces, if it is shorter"
@@ -604,7 +603,7 @@ If there are no groups, add the face to all of S."
   (when (memq 'C-n ido-grid-mode-keys)
     (define-key ido-completion-map (kbd "C-n")  #'igm-next-page))
   (when (memq 'C-p ido-grid-mode-keys)
-    (define-key ido-completion-map (kbd "C-p")  #'igm-previous-page)))
+    (define-key ido-completion-map (kbd "C-p")  #'igm-prev-page)))
 
 ;; this could be done with advice - is advice better?
 ;; I guess this is like advice which definitely ends up at the bottom?
@@ -612,7 +611,7 @@ If there are no groups, add the face to all of S."
 (defvar igm-old-cannot-complete-command nil)
 
 (defun igm-enable ()
-  (setq igm-old-completions (function ido-completions))
+  (setq igm-old-completions (symbol-function 'ido-completions))
   (setq igm-old-cannot-complete-command ido-cannot-complete-command)
   (fset 'ido-completions #'igm-completions)
   (add-hook 'ido-setup-hook #'igm-fix-keys)
@@ -635,4 +634,4 @@ If there are no groups, add the face to all of S."
 
 (provide 'ido-grid-mode)
 
-;;; ido-vertical-mode.el ends here
+;;; ido-grid-mode.el ends here
