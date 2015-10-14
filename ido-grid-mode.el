@@ -250,7 +250,7 @@ Modifies `igm-rows', `igm-columns', `igm-count' and sometimes `igm-offset' as a 
          (col-count (length col-widths))
          (row-count (max ido-grid-mode-min-rows
                          (min ido-grid-mode-max-rows
-                              (/ (length names) col-count))))
+                              (/ (+ (length names) (- col-count 1)) col-count))))
          (grid-size (* row-count col-count))
          (col 0)
          (row 0)
