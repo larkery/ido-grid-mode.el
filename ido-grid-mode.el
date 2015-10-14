@@ -53,6 +53,11 @@
 (defgroup ido-grid-mode nil
   "Method for laying out ido prospects in a grid")
 
+(defcustom ido-grid-mode-max-columns nil
+  "The maximum number of columns"
+  :type '(choice 'integer (const :tag "Unlimited" nil))
+  :group 'ido-grid-mode)
+
 (defcustom ido-grid-mode-max-rows 5
   "The maximum number of rows to use"
   :type 'integer
@@ -162,9 +167,11 @@ Refers to `ido-grid-mode-order' to decide whether to try and fill rows or column
          (lower 1)
          (item-count (length lengths))
          (jank (> item-count ido-grid-mode-jank-rows))
-         (upper (if (igm-row-major)
+         (upper (min
+                 (or ido-grid-mode-max-columns max-width)
+                 (if (igm-row-major)
                     (1+ (/ max-width (apply #'min lengths)))
-                  (+ 2 (/ item-count ido-grid-mode-min-rows))))
+                  (+ 2 (/ item-count ido-grid-mode-min-rows)))))
          lower-solution)
 
     (while (< lower upper)
@@ -622,6 +629,12 @@ If there are no groups, add the face to all of S."
   (setq ido-cannot-complete-command igm-old-cannot-complete-command)
   (remove-hook 'ido-setup-hook #'igm-fix-keys)
   (igm-unadvise-functions))
+
+;;;###autoload
+(defmacro ido-grid-vertically (rows &rest rest)
+  `(let ((ido-grid-mode-max-columns 1)
+         (ido-grid-mode-max-rows ,rows))
+     ,@rest))
 
 ;;;###autoload
 (define-minor-mode ido-grid-mode
