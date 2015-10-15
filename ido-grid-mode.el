@@ -108,7 +108,7 @@ their results concatenated, with spaces where not nill or empty. Run in reverse 
   :type 'string
   :group 'ido-grid-mode)
 
-(defface ido-grid-match
+(defface ido-grid-mode-match
   '((t (:underline t)))
   "The face used to underline matching groups when showing a regular expression"
   :group 'ido-grid-mode)
@@ -155,6 +155,14 @@ If you've added stuff to ido which operates on the current thing, pop it in this
          (existing (gethash key ign-invocation-cache)))
     (or existing (puthash key (mapcar fn stuff)
                           ign-invocation-cache))))
+
+(defmacro igm-debug (s)
+  ;; `(with-current-buffer
+  ;;      (get-buffer-create "ido-grid-debug")
+  ;;    (end-of-buffer)
+  ;;    (insert ,s)
+  ;;    (insert "\n"))
+  )
 
 ;; functions to compute how many columns to use
 
@@ -225,23 +233,39 @@ Refers to `ido-grid-mode-order' to decide whether to try and fill rows or column
                    (if (= (1+ lower) upper)
                        (setf upper lower))))
           )))
+    (igm-debug (format "solution: %s" lower-solution))
     lower-solution))
 
 ;; functions to layout text in a grid of known dimensions.
 
-
-
 (defun igm-pad (string desired-length)
   "given a STRING, pad it to the DESIRED-LENGTH with spaces, if it is shorter"
-  (let ((delta (- desired-length (length string))))
+  (let ((delta (- desired-length (igm-string-width string))))
+    (igm-debug (format "pad %s %d %d" string desired-length delta))
     (cond ((zerop delta) string)
-          ((> delta 0)   (concat string (make-list delta 32)))
+          ((> delta 0) (concat string (make-list delta 32)))
           (t string))))
 
 (defun igm-copy-name (item) (substring (ido-name item) 0))
 
 ;; TODO: make this an un-fontified string, and cache it
 ;;       then add the fonts on afterwards. less churn.
+
+(defun igm-string-width (s)
+  "the displayed width of S in the minibuffer, excluding invisible text"
+  (let* ((base-length (length s))
+         (onset (text-property-any 0 base-length 'invisible t s)))
+    (if onset
+        (let ((base-width (string-width s))
+              (offset 0))
+
+          (while onset
+            (setf offset (text-property-any onset base-length 'invisible nil s))
+            (decf base-width (string-width (substring s onset offset)))
+            (setf onset (text-property-any offset base-length 'invisible t s)))
+
+          base-width)
+      (string-width s))))
 
 (cl-defun igm-gen-grid (items
                         &key
@@ -253,7 +277,7 @@ NAME will be used to turn ITEMS into strings, and the DECORATE to fontify them b
 Modifies `igm-rows', `igm-columns', `igm-count' and sometimes `igm-offset' as a side-effect, sorry."
   (let* ((row-padding (make-list (length ido-grid-mode-prefix) 32))
          (names (igm-mapcar name items))
-         (lengths (igm-mapcar #'length names))
+         (lengths (igm-mapcar #'igm-string-width names))
          (padded-width (- max-width (length row-padding)))
          (col-widths (or (igm-columns lengths padded-width)
                          (make-vector 1 padded-width)))
@@ -377,14 +401,14 @@ If there are no groups, add the face to all of S."
         (while (match-beginning group)
           (add-face-text-property (match-beginning group)
                                   (match-end group)
-                                  'ido-grid-match
+                                  'ido-grid-mode-match
                                   nil s)
           (incf group))
         ;; it's not a regex with groups, so just mark the whole match region.
         (when (= 1 group)
           (add-face-text-property (match-beginning 0)
                                   (match-end 0)
-                                  'ido-grid-match
+                                  'ido-grid-mode-match
                                   nil s)
           )))))
 
@@ -401,6 +425,7 @@ If there are no groups, add the face to all of S."
   (let* ((decoration-regexp (if ido-enable-regexp ido-text (regexp-quote name)))
          (max-width (- (window-body-width (minibuffer-window)) 1))
          (decorator (lambda (name item row column offset)
+                      (igm-debug (format "deco %s (%d %d %d)" name row column offset))
                       (concat
                        (let ((name (substring name 0))
                              (l (length name)))
