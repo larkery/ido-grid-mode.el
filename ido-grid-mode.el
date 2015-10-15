@@ -130,7 +130,7 @@ will move around in the grid, and C-n, C-p will scroll the grid in pages."
   :options '(ido-exit-minibuffer)
   :group 'ido-grid-mode)
 
-(defcustom ido-grid-mode-advise-temp '(ido-killbuffer-at-head ido-delete-file-at-head)
+(defcustom ido-grid-mode-advise-temp '(ido-kill-buffer-at-head ido-delete-file-at-head)
   "Functions which will want to see the right thing at the head of the ido list, but will return to ido later.
 If you've added stuff to ido which operates on the current thing, pop it in this list."
   :type 'hook
