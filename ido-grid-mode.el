@@ -627,24 +627,26 @@ If there are no groups, add the face to all of S."
 
 (defun igm-fix-keys ()
   (setf igm-offset 0)
-  (when (memq 'backtab ido-grid-mode-keys)
-    (define-key ido-completion-map (kbd "<backtab>") #'igm-previous))
-  (when (memq 'tab ido-grid-mode-keys)
-    (setq ido-cannot-complete-command 'igm-next))
 
-  (when (memq 'left ido-grid-mode-keys)
-    (define-key ido-completion-map (kbd "<left>")  #'igm-left))
-  (when (memq 'left ido-grid-mode-keys)
-    (define-key ido-completion-map (kbd "<right>") #'igm-right))
-  (when (memq 'left ido-grid-mode-keys)
-    (define-key ido-completion-map (kbd "<up>")    #'igm-up))
-  (when (memq 'left ido-grid-mode-keys)
-    (define-key ido-completion-map (kbd "<down>")  #'igm-down))
-
-  (when (memq 'C-n ido-grid-mode-keys)
-    (define-key ido-completion-map (kbd "C-n")  #'igm-next-page))
-  (when (memq 'C-p ido-grid-mode-keys)
-    (define-key ido-completion-map (kbd "C-p")  #'igm-previous-page)))
+  (dolist (k ido-grid-mode-keys)
+    (case k
+      ('tab
+       (setq ido-cannot-complete-command 'igm-next))
+      ('backtab
+       (define-key ido-completion-map (kbd "<backtab>") #'igm-previous))
+      ('left
+       (define-key ido-completion-map (kbd "<left>") #'igm-left))
+      ('right
+       (define-key ido-completion-map (kbd "<right>") #'igm-right))
+      ('up
+       (define-key ido-completion-map (kbd "<up>") #'igm-up))
+      ('down
+       (define-key ido-completion-map (kbd "<down>") #'igm-down))
+      ('C-n
+       (define-key ido-completion-map (kbd "C-n") #'igm-next-page))
+      ('C-p
+       (define-key ido-completion-map (kbd "C-p") #'igm-previous-page))
+      )))
 
 ;; this could be done with advice - is advice better?
 ;; I guess this is like advice which definitely ends up at the bottom?
