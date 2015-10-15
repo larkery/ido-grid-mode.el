@@ -238,9 +238,9 @@ Refers to `ido-grid-mode-order' to decide whether to try and fill rows or column
 
 ;; functions to layout text in a grid of known dimensions.
 
-(defun igm-pad (string desired-length)
+(defun igm-pad (string current-length desired-length)
   "given a STRING, pad it to the DESIRED-LENGTH with spaces, if it is shorter"
-  (let ((delta (- desired-length (igm-string-width string))))
+  (let ((delta (- desired-length current-length)))
     (igm-debug (format "pad %s %d %d" string desired-length delta))
     (cond ((zerop delta) string)
           ((> delta 0) (concat string (make-list delta 32)))
@@ -331,7 +331,9 @@ Modifies `igm-rows', `igm-columns', `igm-count' and sometimes `igm-offset' as a 
              ido-grid-mode-padding)
            (elt row-lists (- row-count (1+ row))))
 
-          (push (igm-pad (funcall decorate (pop names) (pop items) row col index)
+          (push (igm-pad (funcall decorate (pop names) (pop items)
+                                  row col index)
+                         (pop lengths)
                          (aref col-widths col))
                 (elt row-lists (- row-count (1+ row))))
 
