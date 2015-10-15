@@ -91,11 +91,11 @@ down that many rows, but the packing will run faster and may be tighter. Set to 
   :type 'string
   :group 'ido-grid-mode)
 
-(defcustom ido-grid-mode-first-line '(ido-grid-count ido-grid-prefix)
+(defcustom ido-grid-mode-first-line '(ido-grid-more ido-grid-count ido-grid-prefix)
   "A list of functions to produce the first line. These functions will be run and
 their results concatenated, with spaces where not nill or empty. Run in reverse order"
   :type 'hook
-  :options '(ido-grid-count ido-grid-prefix)
+  :options '(ido-grid-more ido-grid-count ido-grid-prefix)
   :group 'ido-grid-mode)
 
 (defcustom ido-grid-mode-exact-match-prefix ">> "
@@ -108,7 +108,7 @@ their results concatenated, with spaces where not nill or empty. Run in reverse 
   :type 'string
   :group 'ido-grid-mode)
 
-(defface ido-grid-match-face
+(defface ido-grid-match
   '((t (:underline t)))
   "The face used to underline matching groups when showing a regular expression"
   :group 'ido-grid-mode)
@@ -239,6 +239,9 @@ Refers to `ido-grid-mode-order' to decide whether to try and fill rows or column
           (t string))))
 
 (defun igm-copy-name (item) (substring (ido-name item) 0))
+
+;; TODO: make this an un-fontified string, and cache it
+;;       then add the fonts on afterwards. less churn.
 
 (cl-defun igm-gen-grid (items
                         &key
@@ -374,14 +377,14 @@ If there are no groups, add the face to all of S."
         (while (match-beginning group)
           (add-face-text-property (match-beginning group)
                                   (match-end group)
-                                  'ido-grid-match-face
+                                  'ido-grid-match
                                   nil s)
           (incf group))
         ;; it's not a regex with groups, so just mark the whole match region.
         (when (= 1 group)
           (add-face-text-property (match-beginning 0)
                                   (match-end 0)
-                                  'ido-grid-match-face
+                                  'ido-grid-match
                                   nil s)
           )))))
 
@@ -459,9 +462,13 @@ If there are no groups, add the face to all of S."
 
     (concat " [" (number-to-string len)
             (if cands (format "/%d" cands) "")
-            (if (> len igm-count) (format " (%d more)" (- len igm-count)) "")
-
             "]")))
+
+(defun ido-grid-more ()
+  (let ((total (length ido-matches)))
+  (when (> total igm-count)
+    (format " (%d not shown)" (- total igm-count))
+    )))
 
 ;; movement in grid keys
 
@@ -498,7 +505,7 @@ If there are no groups, add the face to all of S."
 
      ;; check whether we went out of bounds
      (cond ((or (< row 0) (< col 0))  ; this is the case where we went upwards or left from the top
-            (igm-prev-page))
+            (igm-previous-page))
 
            ((or (= row nrows) (= col ncols) ; this is the case where we have scrolled down
                 (>= igm-offset igm-count))
@@ -537,7 +544,7 @@ If there are no groups, add the face to all of S."
       (call-interactively #'igm-right)
     (call-interactively #'igm-down)))
 
-(defun igm-prev-page ()
+(defun igm-previous-page ()
   (interactive)
   (when (and ido-matches
              (< igm-count (length ido-matches)))
@@ -610,7 +617,7 @@ If there are no groups, add the face to all of S."
   (when (memq 'C-n ido-grid-mode-keys)
     (define-key ido-completion-map (kbd "C-n")  #'igm-next-page))
   (when (memq 'C-p ido-grid-mode-keys)
-    (define-key ido-completion-map (kbd "C-p")  #'igm-prev-page)))
+    (define-key ido-completion-map (kbd "C-p")  #'igm-previous-page)))
 
 ;; this could be done with advice - is advice better?
 ;; I guess this is like advice which definitely ends up at the bottom?
@@ -629,12 +636,6 @@ If there are no groups, add the face to all of S."
   (setq ido-cannot-complete-command igm-old-cannot-complete-command)
   (remove-hook 'ido-setup-hook #'igm-fix-keys)
   (igm-unadvise-functions))
-
-;;;###autoload
-(defmacro ido-grid-vertically (rows &rest rest)
-  `(let ((ido-grid-mode-max-columns 1)
-         (ido-grid-mode-max-rows ,rows))
-     ,@rest))
 
 ;;;###autoload
 (define-minor-mode ido-grid-mode
