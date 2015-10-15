@@ -1,0 +1,51 @@
+* Ido Grid Mode
+
+  This is an enhancement to ido mode which displays the ido prospects in a grid in the minibuffer. I find this makes them easier to read. It can also amend ido's key-bindings so that you can navigate around the grid, rather than scrolling all the completions. I find this also makes it easier to read.
+
+  Here are some pictures:
+
+  [[./pictures/1.png]]
+  [[./pictures/2.png]]
+  [[./pictures/3.png]]
+  [[./pictures/4.png]]
+
+  In these you can see whats going on - the selected item is highlighted in orange, matching parts of items are underlined, and the top line contains a string like [x/y] (z not shown), meaning that there are x items matching your input from y total, and that z are not visible on the screen, but can be scrolled to if you move down enough.
+
+* Installation
+
+  It is a single-file emacs package, so you can use =M-x package-install-file= on it. To switch it on, invoke =(ido-grid-mode 1)=. To switch it off, invoke =(ido-grid-mode -1)=
+
+* Configuration
+
+  Most things are configurable through =M-x customize-group ido-grid-mode=. The important things are =ido-grid-mode-max-rows= and =ido-grid-mode-min-rows=, which determine the size of the thing, and perhaps =ido-grid-mode-order=. If you want a vertical list when doing a completing-read or similar, you can let-bind =ido-grid-mode-max-columns=:
+
+  #+BEGIN_SRC elisp
+    (let ((ido-grid-mode-max-columns 1)
+          (ido-grid-mode-max-rows 30))
+      (completing-read ...))
+  #+END_SRC
+
+** Keys
+
+   By default, =ido-grid-mode= will mangle your key-bindings for =<up>=, =<down>=, =<left>=, =<right>=, =<tab>=, =<backtab>=, =C-n= and =C-p= when in the minibuffer. These are bound to move around the grid and page up / down when there are many items. You can change this by customizing =ido-grid-mode-keys=; set it to =nil= to leave the keys alone. The movement commands are =igm-<up,down,left,right>=, =igm-previous=, =igm-next=, =igm-previous-page=, and =igm-next-page=.
+
+** Faces
+
+   At the moment, =ido-use-faces= is ignored, and faces are always added. This is partly because you need a face to see the highlighted item. The faces used are:
+
+   - =ido-grid-match=, which is used to highlight matching substrings
+   - =ido-first-match=, which is used to highlight the selected prospect
+   - =ido-only-match=, which is used when there is only one prospect
+   - =ido-subdir=, which is used to colour in directories in ido-find-file
+   - =font-lock-comment-face=, which is used for the common prefix string
+   - =ido-incomplete-regexp=, which is used when there is an incomplete regexp.
+
+** Top line
+
+   The top line shows some information after point; this is configurable with =ido-grid-mode-first-line=.
+
+* See also
+
+  - [[https://github.com/creichert/ido-vertical-mode.el][ido-vertical-mode.el]], which this was based on. I rewrote it when it looked like I was starting to break existing behaviour too much.
+  - [[https://github.com/larkery/ido-match-modes.el][ido-match-modes.el]], which lets you toggle different ido matching methods (flx, regex, substring etc.) and uses =ido-grid-mode-first-line= to display the current method.
+  - [[https://github.com/mooz/emacs-zlc][emacs-zlc]], which does something similar to this, but in the completions buffer rather than the minibuffer.
