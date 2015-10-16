@@ -660,7 +660,7 @@ If there are no groups, add the face to all of S."
 (define-minor-mode ido-grid-mode
   "Makes ido-mode display candidates in a grid."
   :global t
-  :group ido-grid-mode
+  :group 'ido-grid-mode
   (if ido-grid-mode
       (igm-enable)
     (igm-disable)))
