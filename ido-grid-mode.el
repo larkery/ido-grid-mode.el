@@ -32,6 +32,7 @@
 ;;; Code:
 
 (require 'cl-lib)
+(require 'cl)
 
 ;;; The following four variables and the first three comments are lifted
 ;;; directly from `ido.el'; they are defined here to avoid compile-log
@@ -504,20 +505,20 @@ If there are no groups, add the face to all of S."
 
           (row   (if (igm-row-major) (/ igm-offset igm-rows) (% igm-offset igm-rows)))
           (col   (if (igm-row-major) (% igm-offset igm-rows) (/ igm-offset igm-rows))))
-     ,(case direction
-        (u '(if (zerop row)
+     ,(pcase direction
+        (`u '(if (zerop row)
                 (setf row (- nrows 1)
                       col (- col 1))
               (decf row)))
-        (d '(if (= (1+ row) nrows)
+        (`d '(if (= (1+ row) nrows)
                 (setf row 0
                       col (1+ col))
               (incf row)))
-        (l '(if (zerop col)
+        (`l '(if (zerop col)
                 (setf col (- ncols 1)
                       row (- row 1))
               (decf col)))
-        (r '(if (= (1+ col) ncols)
+        (`r '(if (= (1+ col) ncols)
                 (setf col 0
                       row (1+ row))
               (incf col)))
@@ -627,15 +628,15 @@ If there are no groups, add the face to all of S."
   (setf igm-offset 0)
 
   (dolist (k ido-grid-mode-keys)
-    (case k
-      ('tab (setq ido-cannot-complete-command 'igm-next))
-      ('backtab (define-key ido-completion-map (kbd "<backtab>") #'igm-previous))
-      ('left    (define-key ido-completion-map (kbd "<left>")    #'igm-left))
-      ('right   (define-key ido-completion-map (kbd "<right>")   #'igm-right))
-      ('up      (define-key ido-completion-map (kbd "<up>")      #'igm-up))
-      ('down    (define-key ido-completion-map (kbd "<down>")    #'igm-down))
-      ('C-n     (define-key ido-completion-map (kbd "C-n")       #'igm-next-page))
-      ('C-p     (define-key ido-completion-map (kbd "C-p")       #'igm-previous-page))
+    (pcase k
+      (`tab (setq ido-cannot-complete-command 'igm-next))
+      (`backtab (define-key ido-completion-map (kbd "<backtab>") #'igm-previous))
+      (`left    (define-key ido-completion-map (kbd "<left>")    #'igm-left))
+      (`right   (define-key ido-completion-map (kbd "<right>")   #'igm-right))
+      (`up      (define-key ido-completion-map (kbd "<up>")      #'igm-up))
+      (`down    (define-key ido-completion-map (kbd "<down>")    #'igm-down))
+      (`C-n     (define-key ido-completion-map (kbd "C-n")       #'igm-next-page))
+      (`C-p     (define-key ido-completion-map (kbd "C-p")       #'igm-previous-page))
       )))
 
 ;; this could be done with advice - is advice better?
