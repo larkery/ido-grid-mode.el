@@ -91,11 +91,10 @@ down that many rows, but the packing will run faster and may be tighter. Set to 
   :type 'string
   :group 'ido-grid-mode)
 
-(defcustom ido-grid-mode-first-line '(ido-grid-count ido-grid-more)
+(defcustom ido-grid-mode-first-line '(" [" ido-grid-mode-count "]")
   "How to generate the top line of input.
 This can be a list of symbols; function symbols will be evaluated."
-  :type '(set (choice string function))
-  :options '(ido-grid-count ido-grid-more)
+  :type '(repeat (choice function symbol string))
   :group 'ido-grid-mode)
 
 (defcustom ido-grid-mode-exact-match-prefix ">> "
@@ -103,7 +102,7 @@ This can be a list of symbols; function symbols will be evaluated."
   :type 'string
   :group 'ido-grid-mode)
 
-(defcustom ido-grid-mode-prefix "?  "
+(defcustom ido-grid-mode-prefix "-> "
   "A string to put at the start of the first row"
   :type 'string
   :group 'ido-grid-mode)
@@ -362,6 +361,7 @@ Modifies `igm-rows', `igm-columns', `igm-count' and sometimes `igm-offset' as a 
           (mapconcat (lambda (x)
                        (cond
                         ((functionp x) (or (funcall x) ""))
+                        ((symbolp x) (format "%s" (or (eval x) "")))
                         (t (format "%s" x))))
                      ido-grid-mode-first-line
                      "")))
@@ -481,21 +481,12 @@ If there are no groups, add the face to all of S."
          (igm-exact-match)
          (igm-grid name)))))
 
-(defun ido-grid-count ()
-  "How many prospects match the input, and how many are there in total. Intended for use in `ido-grid-mode-first-line'."
-  (let ((len (length ido-matches))
-        (cands (if (boundp 'ido-cur-list) (length ido-cur-list))))
-
-    (concat " [" (number-to-string len)
-            (if cands (format "/%d" cands) "")
-            "]")))
-
-(defun ido-grid-more ()
-  "How many items from the prospect list are off-screen at the moment. Intended for use in `ido-grid-mode-first-line'."
-  (let ((total (length ido-matches)))
-  (when (> total igm-count)
-    (format " (%d hidden)" (- total igm-count))
-    )))
+(defun ido-grid-mode-count ()
+  "For use in `ido-grid-mode-first-line'. Counts matches, and tells you how many you can see in the grid."
+  (let ((count (length ido-matches)))
+    (if (> count igm-count)
+        (format "%d/%d" igm-count count)
+      (number-to-string count))))
 
 ;; movement in grid keys
 
