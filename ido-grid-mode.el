@@ -113,7 +113,7 @@ This can be a list of symbols; function symbols will be evaluated."
   :group 'ido-grid-mode)
 
 (defface ido-grid-mode-prefix
-  '((t (:inherit font-lock-comment-face)))
+  '((t (:inherit shadow)))
   "The face used to display the common match prefix"
   :group 'ido-grid-mode)
 
