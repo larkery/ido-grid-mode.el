@@ -31,6 +31,8 @@
 
 ;;; Code:
 
+(require 'cl-lib)
+
 ;;; The following four variables and the first three comments are lifted
 ;;; directly from `ido.el'; they are defined here to avoid compile-log
 ;;; warnings. See `ido.el' for more information.
