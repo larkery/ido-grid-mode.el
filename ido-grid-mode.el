@@ -91,11 +91,11 @@ down that many rows, but the packing will run faster and may be tighter. Set to 
   :type 'string
   :group 'ido-grid-mode)
 
-(defcustom ido-grid-mode-first-line '(ido-grid-more ido-grid-count ido-grid-prefix)
-  "A list of functions to produce the first line. These functions will be run and
-their results concatenated, with spaces where not nill or empty. Run in reverse order"
-  :type 'hook
-  :options '(ido-grid-more ido-grid-count ido-grid-prefix)
+(defcustom ido-grid-mode-first-line '(ido-grid-count ido-grid-more)
+  "How to generate the top line of input.
+This can be a list of symbols; function symbols will be evaluated."
+  :type '(set (choice string function))
+  :options '(ido-grid-count ido-grid-more)
   :group 'ido-grid-mode)
 
 (defcustom ido-grid-mode-exact-match-prefix ">> "
@@ -358,11 +358,13 @@ Modifies `igm-rows', `igm-columns', `igm-count' and sometimes `igm-offset' as a 
 
 (defun igm-gen-first-line ()
   "Generate the first line suffix text using `ido-grid-mode-first-line' hook"
-  (let (result)
-    (dolist (fn ido-grid-mode-first-line)
-      (let ((part (funcall fn)))
-        (when (and part (> (length part) 0)) (push part result))))
-    (apply #'concat result)))
+  (concat igm-prefix
+          (mapconcat (lambda (x)
+                       (cond
+                        ((functionp x) (or (funcall x) ""))
+                        (t (format "%s" x))))
+                     ido-grid-mode-first-line
+                     "")))
 
 (defun igm-no-matches ()
   "If there are no matches, produce a helpful string about it."
@@ -471,19 +473,16 @@ If there are no groups, add the face to all of S."
          (and (stringp ido-common-match-string)
               (> (length ido-common-match-string) (length name))
               (substring ido-common-match-string (length name)))))
+    (when igm-prefix
+      (add-face-text-property 0 (length igm-prefix) 'font-lock-comment-face nil igm-prefix))
     (igm-pad-missing-rows
      (or (igm-no-matches)
          (igm-incomplete-regexp)
          (igm-exact-match)
          (igm-grid name)))))
 
-(defun ido-grid-prefix ()
-  "Display the ido common match prefix if there is one.."
-  (when igm-prefix
-    (add-face-text-property 0 (length igm-prefix) 'font-lock-comment-face nil igm-prefix))
-  igm-prefix)
-
 (defun ido-grid-count ()
+  "How many prospects match the input, and how many are there in total. Intended for use in `ido-grid-mode-first-line'."
   (let ((len (length ido-matches))
         (cands (if (boundp 'ido-cur-list) (length ido-cur-list))))
 
@@ -492,9 +491,10 @@ If there are no groups, add the face to all of S."
             "]")))
 
 (defun ido-grid-more ()
+  "How many items from the prospect list are off-screen at the moment. Intended for use in `ido-grid-mode-first-line'."
   (let ((total (length ido-matches)))
   (when (> total igm-count)
-    (format " (%d not shown)" (- total igm-count))
+    (format " (%d hidden)" (- total igm-count))
     )))
 
 ;; movement in grid keys
