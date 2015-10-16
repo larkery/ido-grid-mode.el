@@ -112,6 +112,11 @@ This can be a list of symbols; function symbols will be evaluated."
   "The face used to underline matching groups when showing a regular expression"
   :group 'ido-grid-mode)
 
+(defface ido-grid-mode-prefix
+  '((t (:inherit font-lock-comment-face)))
+  "The face used to display the common match prefix"
+  :group 'ido-grid-mode)
+
 (defcustom ido-grid-mode-always-show-min-rows t
   "Whether to expand the minibuffer to be `ido-grid-mode-min-rows' under all circumstances (like when there is a single match, or an error - reduces janking around)"
   :group 'ido-grid-mode
@@ -474,7 +479,7 @@ If there are no groups, add the face to all of S."
               (> (length ido-common-match-string) (length name))
               (substring ido-common-match-string (length name)))))
     (when igm-prefix
-      (add-face-text-property 0 (length igm-prefix) 'font-lock-comment-face nil igm-prefix))
+      (add-face-text-property 0 (length igm-prefix) 'ido-grid-mode-prefix nil igm-prefix))
     (igm-pad-missing-rows
      (or (igm-no-matches)
          (igm-incomplete-regexp)
