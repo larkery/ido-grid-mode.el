@@ -310,6 +310,10 @@ Modifies `igm-rows', `igm-columns', `igm-count' and sometimes `igm-offset' as a 
          (index 0)
          all-rows)
 
+    (add-face-text-property 0 (length ido-grid-mode-prefix)
+                            'minibuffer-prompt
+                            nil ido-grid-mode-prefix)
+
     (setf igm-rows    row-count
           igm-columns col-count)
 
@@ -407,6 +411,9 @@ Modifies `igm-rows', `igm-columns', `igm-count' and sometimes `igm-offset' as a 
 
 (defun igm-exact-match ()
   (when (not (cdr ido-matches))
+    (add-face-text-property 0 (length ido-grid-mode-exact-match-prefix)
+                            'minibuffer-prompt
+                            nil ido-grid-mode-exact-match-prefix)
     (concat
      (igm-gen-first-line) "\n"
      ido-grid-mode-exact-match-prefix
