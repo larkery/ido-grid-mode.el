@@ -495,6 +495,7 @@ If there are no groups, add the face to all of S."
     (let ((ido-grid-mode-max-rows    (if igm-collapsed 1 ido-grid-mode-max-rows))
           (ido-grid-mode-min-rows    (if igm-collapsed 1 ido-grid-mode-min-rows))
           (ido-grid-mode-order   (if igm-collapsed 'rows ido-grid-mode-order))
+          (ido-grid-mode-jank-rows (if igm-collapsed 0 ido-grid-mode-jank-rows))
           (ido-grid-mode-always-show-min-rows (if igm-collapsed nil ido-grid-mode-always-show-min-rows)))
 
       (igm-pad-missing-rows
