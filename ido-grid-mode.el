@@ -77,7 +77,7 @@
   :group 'ido-grid-mode)
 
 (defcustom ido-grid-mode-jank-rows 1000
-  "the grid layout algorithm will stop looking this many rows beyond `ido-grid-mode-max-rows',
+  "The grid layout algorithm will stop looking this many rows beyond `ido-grid-mode-max-rows',
 and just accept the solution it has so far. This means that the scrolling will jank after you have gone
 down that many rows, but the packing will run faster and may be tighter. Set to zero to jank a lot."
   :type 'integer
@@ -95,7 +95,9 @@ down that many rows, but the packing will run faster and may be tighter. Set to 
 
 (defcustom ido-grid-mode-first-line '(" [" ido-grid-mode-count "]")
   "How to generate the top line of input.
-This can be a list of symbols; function symbols will be evaluated."
+This can be a list of symbols; function symbols will be evaluated.
+The function `ido-grid-mode-count' displays a count of visible and matching items.
+`ido-grid-mode-long-count' displays more detail about this."
   :type '(repeat (choice function symbol string))
   :group 'ido-grid-mode)
 
@@ -145,7 +147,7 @@ If you've added stuff to ido which operates on the current thing, pop it in this
 
 (defcustom ido-grid-mode-start-collapsed nil
   "If t, ido-grid-mode will start off small, and only display the grid when you press tab.
-(or call igm-tab, if you haven't asked it to bind <tab> for you)"
+\(or call igm-tab, if you haven't asked it to bind <tab> for you - see `ido-grid-mode-keys')"
   :type 'boolean
   :group 'ido-grid-mode)
 
@@ -171,11 +173,11 @@ If you've added stuff to ido which operates on the current thing, pop it in this
                           ign-invocation-cache))))
 
 (defmacro igm-debug (s)
-  `(with-current-buffer
-       (get-buffer-create "ido-grid-debug")
-     (end-of-buffer)
-     (insert ,s)
-     (insert "\n"))
+  ;; `(with-current-buffer
+  ;;      (get-buffer-create "ido-grid-debug")
+  ;;    (end-of-buffer)
+  ;;    (insert ,s)
+  ;;    (insert "\n"))
   )
 
 ;; functions to compute how many columns to use
@@ -507,12 +509,32 @@ If there are no groups, add the face to all of S."
            (igm-grid name)
            )))))
 
+(defun ido-grid-mode-long-count ()
+  "For use in `ido-grid-mode-first-line. Produces a string like '10/20, 8 not shown'
+to say that there are 20 candidates, of
+which 10 match, and 8 are off-screen."
+  (let ((count (length ido-matches))
+        (cand (length ido-cur-list))
+        (vis igm-count))
+    (if (< vis count)
+        (format "%d/%d, %d not shown" count cand (- count vis))
+      (format "%d/%d" count cand))))
+
 (defun ido-grid-mode-count ()
   "For use in `ido-grid-mode-first-line'. Counts matches, and tells you how many you can see in the grid."
   (let ((count (length ido-matches)))
     (if (> count igm-count)
         (format "%d/%d" igm-count count)
       (number-to-string count))))
+
+(defun ido-grid-mode-file-path ()
+  "For use in `ido-grid-mode-first-line'. If the highlighted thing names a buffer visiting a file,
+displays the path to that file."
+  (let* ((item (ido-name (nth igm-offset ido-matches)))
+         (b (get-buffer item)))
+    (when (and b
+               (buffer-file-name b))
+      (buffer-file-name b))))
 
 ;; movement in grid keys
 
