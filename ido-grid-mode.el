@@ -1,6 +1,4 @@
-;; -*- coding: utf-8; lexical-binding: t -*-
-
-;;; ido-grid-mode.el --- Makes ido-mode display in a grid like zsh completions.
+;;; ido-grid-mode.el --- Display ido-prospects in the minibuffer in a grid. -*- coding: utf-8; lexical-binding: t -*-
 
 ;; Copyright (C) 2015  Tom Hinton
 
