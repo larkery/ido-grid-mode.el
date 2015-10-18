@@ -31,6 +31,8 @@
 
 ;;; Code:
 
+(eval-when-compile (require 'cl))
+
 ;;; The following four variables and the first three comments are lifted
 ;;; directly from `ido.el'; they are defined here to avoid compile-log
 ;;; warnings. See `ido.el' for more information.
@@ -91,11 +93,10 @@ down that many rows, but the packing will run faster and may be tighter. Set to 
   :type 'string
   :group 'ido-grid-mode)
 
-(defcustom ido-grid-mode-first-line '(ido-grid-more ido-grid-count ido-grid-prefix)
-  "A list of functions to produce the first line. These functions will be run and
-their results concatenated, with spaces where not nill or empty. Run in reverse order"
-  :type 'hook
-  :options '(ido-grid-more ido-grid-count ido-grid-prefix)
+(defcustom ido-grid-mode-first-line '(" [" ido-grid-mode-count "]")
+  "How to generate the top line of input.
+This can be a list of symbols; function symbols will be evaluated."
+  :type '(repeat (choice function symbol string))
   :group 'ido-grid-mode)
 
 (defcustom ido-grid-mode-exact-match-prefix ">> "
@@ -103,7 +104,7 @@ their results concatenated, with spaces where not nill or empty. Run in reverse 
   :type 'string
   :group 'ido-grid-mode)
 
-(defcustom ido-grid-mode-prefix "?  "
+(defcustom ido-grid-mode-prefix "-> "
   "A string to put at the start of the first row"
   :type 'string
   :group 'ido-grid-mode)
@@ -111,6 +112,11 @@ their results concatenated, with spaces where not nill or empty. Run in reverse 
 (defface ido-grid-mode-match
   '((t (:underline t)))
   "The face used to underline matching groups when showing a regular expression"
+  :group 'ido-grid-mode)
+
+(defface ido-grid-mode-prefix
+  '((t (:inherit shadow)))
+  "The face used to display the common match prefix"
   :group 'ido-grid-mode)
 
 (defcustom ido-grid-mode-always-show-min-rows t
@@ -367,11 +373,14 @@ Modifies `igm-rows', `igm-columns', `igm-count' and sometimes `igm-offset' as a 
 
 (defun igm-gen-first-line ()
   "Generate the first line suffix text using `ido-grid-mode-first-line' hook"
-  (let (result)
-    (dolist (fn ido-grid-mode-first-line)
-      (let ((part (funcall fn)))
-        (when (and part (> (length part) 0)) (push part result))))
-    (apply #'concat result)))
+  (concat igm-prefix
+          (mapconcat (lambda (x)
+                       (cond
+                        ((functionp x) (or (funcall x) ""))
+                        ((symbolp x) (format "%s" (or (eval x) "")))
+                        (t (format "%s" x))))
+                     ido-grid-mode-first-line
+                     "")))
 
 (defun igm-no-matches ()
   "If there are no matches, produce a helpful string about it."
@@ -480,6 +489,8 @@ If there are no groups, add the face to all of S."
          (and (stringp ido-common-match-string)
               (> (length ido-common-match-string) (length name))
               (substring ido-common-match-string (length name)))))
+    (when igm-prefix
+      (add-face-text-property 0 (length igm-prefix) 'ido-grid-mode-prefix nil igm-prefix))
 
     (let ((ido-grid-mode-max-rows    (if igm-collapsed 1 ido-grid-mode-max-rows))
           (ido-grid-mode-min-rows    (if igm-collapsed 1 ido-grid-mode-min-rows))
@@ -493,25 +504,12 @@ If there are no groups, add the face to all of S."
            (igm-grid name)
            )))))
 
-(defun ido-grid-prefix ()
-  "Display the ido common match prefix if there is one.."
-  (when igm-prefix
-    (add-face-text-property 0 (length igm-prefix) 'font-lock-comment-face nil igm-prefix))
-  igm-prefix)
-
-(defun ido-grid-count ()
-  (let ((len (length ido-matches))
-        (cands (if (boundp 'ido-cur-list) (length ido-cur-list))))
-
-    (concat " [" (number-to-string len)
-            (if cands (format "/%d" cands) "")
-            "]")))
-
-(defun ido-grid-more ()
-  (let ((total (length ido-matches)))
-  (when (> total igm-count)
-    (format " (%d not shown)" (- total igm-count))
-    )))
+(defun ido-grid-mode-count ()
+  "For use in `ido-grid-mode-first-line'. Counts matches, and tells you how many you can see in the grid."
+  (let ((count (length ido-matches)))
+    (if (> count igm-count)
+        (format "%d/%d" igm-count count)
+      (number-to-string count))))
 
 ;; movement in grid keys
 
@@ -522,20 +520,20 @@ If there are no groups, add the face to all of S."
 
           (row   (if (igm-row-major) (/ igm-offset igm-rows) (% igm-offset igm-rows)))
           (col   (if (igm-row-major) (% igm-offset igm-rows) (/ igm-offset igm-rows))))
-     ,(case direction
-        (u '(if (zerop row)
+     ,(pcase direction
+        (`u '(if (zerop row)
                 (setf row (- nrows 1)
                       col (- col 1))
               (decf row)))
-        (d '(if (= (1+ row) nrows)
+        (`d '(if (= (1+ row) nrows)
                 (setf row 0
                       col (1+ col))
               (incf row)))
-        (l '(if (zerop col)
+        (`l '(if (zerop col)
                 (setf col (- ncols 1)
                       row (- row 1))
               (decf col)))
-        (r '(if (= (1+ col) ncols)
+        (`r '(if (= (1+ col) ncols)
                 (setf col 0
                       row (1+ row))
               (incf col)))
@@ -652,15 +650,16 @@ If there are no groups, add the face to all of S."
   (setf igm-collapsed ido-grid-mode-start-collapsed)
 
   (dolist (k ido-grid-mode-keys)
-    (case k
-      ('tab (setq ido-cannot-complete-command 'igm-tab))
-      ('backtab (define-key ido-completion-map (kbd "<backtab>") #'igm-previous))
-      ('left    (define-key ido-completion-map (kbd "<left>")    #'igm-left))
-      ('right   (define-key ido-completion-map (kbd "<right>")   #'igm-right))
-      ('up      (define-key ido-completion-map (kbd "<up>")      #'igm-up))
-      ('down    (define-key ido-completion-map (kbd "<down>")    #'igm-down))
-      ('C-n     (define-key ido-completion-map (kbd "C-n")       #'igm-next-page))
-      ('C-p     (define-key ido-completion-map (kbd "C-p")       #'igm-previous-page))
+
+    (pcase k
+      (`tab (setq ido-cannot-complete-command 'igm-tab))
+      (`backtab (define-key ido-completion-map (kbd "<backtab>") #'igm-previous))
+      (`left    (define-key ido-completion-map (kbd "<left>")    #'igm-left))
+      (`right   (define-key ido-completion-map (kbd "<right>")   #'igm-right))
+      (`up      (define-key ido-completion-map (kbd "<up>")      #'igm-up))
+      (`down    (define-key ido-completion-map (kbd "<down>")    #'igm-down))
+      (`C-n     (define-key ido-completion-map (kbd "C-n")       #'igm-next-page))
+      (`C-p     (define-key ido-completion-map (kbd "C-p")       #'igm-previous-page))
       )))
 
 ;; this could be done with advice - is advice better?
@@ -685,7 +684,7 @@ If there are no groups, add the face to all of S."
 (define-minor-mode ido-grid-mode
   "Makes ido-mode display candidates in a grid."
   :global t
-  :group ido-grid-mode
+  :group 'ido-grid-mode
   (if ido-grid-mode
       (igm-enable)
     (igm-disable)))
