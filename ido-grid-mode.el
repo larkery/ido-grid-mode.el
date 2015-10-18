@@ -171,11 +171,11 @@ If you've added stuff to ido which operates on the current thing, pop it in this
                           ign-invocation-cache))))
 
 (defmacro igm-debug (s)
-  ;; `(with-current-buffer
-  ;;      (get-buffer-create "ido-grid-debug")
-  ;;    (end-of-buffer)
-  ;;    (insert ,s)
-  ;;    (insert "\n"))
+  `(with-current-buffer
+       (get-buffer-create "ido-grid-debug")
+     (end-of-buffer)
+     (insert ,s)
+     (insert "\n"))
   )
 
 ;; functions to compute how many columns to use
@@ -207,14 +207,16 @@ Refers to `ido-grid-mode-order' to decide whether to try and fill rows or column
              (column 0)
              (row 0)
              (widths (make-vector middle 0)))
-
+        (igm-debug (format "try %dx%d %s" rows middle widths))
         ;; try and pack the items
         (let ((overflow
                (catch 'stop
                  (dolist (length lengths)
                    ;; if we have reached the jank point, stop
                    (when (and (igm-row-major)
-                              jank (> row ido-grid-mode-max-rows))
+                              jank
+                              (>= row ido-grid-mode-max-rows))
+                     (igm-debug (format "looking too far vertically at %dx%d %s" row column widths))
                      (throw 'stop nil))
 
                    (when (and (igm-column-major)
@@ -225,6 +227,7 @@ Refers to `ido-grid-mode-order' to decide whether to try and fill rows or column
 
                    (let ((w (aref widths column)))
                      (when (> length w)
+                       (igm-debug (format "%dx%d expands %d to %d" row column w length))
                        (incf total-width (- length w))
                        (aset widths column length)))
 
@@ -237,6 +240,7 @@ Refers to `ido-grid-mode-order' to decide whether to try and fill rows or column
 
                    ;; die if overflow
                    (when (> total-width spare-width)
+                     (igm-debug "doesn't fit horizontally")
                      (throw 'stop t))))))
 
           ;; move bound in search
@@ -255,7 +259,6 @@ Refers to `ido-grid-mode-order' to decide whether to try and fill rows or column
 (defun igm-pad (string current-length desired-length)
   "given a STRING, pad it to the DESIRED-LENGTH with spaces, if it is shorter"
   (let ((delta (- desired-length current-length)))
-    (igm-debug (format "pad %s %d %d" string desired-length delta))
     (cond ((zerop delta) string)
           ((> delta 0) (concat string (make-list delta 32)))
           (t string))))
@@ -445,7 +448,6 @@ If there are no groups, add the face to all of S."
   (let* ((decoration-regexp (if ido-enable-regexp ido-text (regexp-quote name)))
          (max-width (- (window-body-width (minibuffer-window)) 1))
          (decorator (lambda (name item row column offset)
-                      (igm-debug (format "deco %s (%d %d %d)" name row column offset))
                       (concat
                        (let ((name (substring name 0))
                              (l (length name)))
