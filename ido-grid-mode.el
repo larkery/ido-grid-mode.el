@@ -44,6 +44,15 @@
 ;; Remember if current directory is 'huge' (so we don't want to do completion).
 (defvar ido-directory-too-big)
 
+(defvar ido-report-no-match t
+  "Report [No Match] when no completions matches ido-text.")
+
+(defvar ido-matches nil
+  "List of files currently matching `ido-text'.")
+
+(defvar ido-incomplete-regexp nil
+  "Non-nil if an incomplete regexp is entered.")
+
 ;; this is defined dynamically by ido
 (eval-when-compile
   (defvar ido-cur-list))
@@ -51,20 +60,21 @@
 ;; custom settings
 
 (defgroup ido-grid-mode nil
-  "Method for laying out ido prospects in a grid")
+  "Method for laying out ido prospects in a grid"
+  :group 'ido)
 
 (defcustom ido-grid-mode-max-columns nil
-  "The maximum number of columns"
+  "The maximum number of columns."
   :type '(choice 'integer (const :tag "Unlimited" nil))
   :group 'ido-grid-mode)
 
 (defcustom ido-grid-mode-max-rows 5
-  "The maximum number of rows to use"
+  "The maximum number of rows."
   :type 'integer
   :group 'ido-grid-mode)
 
 (defcustom ido-grid-mode-min-rows 5
-  "The minimum number of rows to use"
+  "The minimum number of rows."
   :type 'integer
   :group 'ido-grid-mode)
 
@@ -75,15 +85,9 @@
   :group 'ido-grid-mode)
 
 (defcustom ido-grid-mode-jank-rows 1000
-  "The grid layout algorithm will stop looking this many rows beyond `ido-grid-mode-max-rows',
-and just accept the solution it has so far. This means that the scrolling will jank after you have gone
-down that many rows, but the packing will run faster and may be tighter. Set to zero to jank a lot."
+  "Only this many rows will be considered when packing the grid.
+If this is a low number, the column widths will change more when scrolling."
   :type 'integer
-  :group 'ido-grid-mode)
-
-(defcustom ido-grid-mode-enabled nil
-  "Whether to turn on ido-grid-mode"
-  :type 'boolean
   :group 'ido-grid-mode)
 
 (defcustom ido-grid-mode-padding "    "
@@ -93,40 +97,44 @@ down that many rows, but the packing will run faster and may be tighter. Set to 
 
 (defcustom ido-grid-mode-first-line '(" [" ido-grid-mode-count "]")
   "How to generate the top line of input.
-This can be a list of symbols; function symbols will be evaluated.
-The function `ido-grid-mode-count' displays a count of visible and matching items.
-`ido-grid-mode-long-count' displays more detail about this."
+This can be a list of symbols; function symbols will be
+evaluated.  The function `ido-grid-mode-count' displays a count
+of visible and matching items.  `ido-grid-mode-long-count'
+displays more detail about this."
   :type '(repeat (choice function symbol string))
   :group 'ido-grid-mode)
 
 (defcustom ido-grid-mode-exact-match-prefix ">> "
-  "A string to put before an exact match"
+  "A string to put before an exact match."
   :type 'string
   :group 'ido-grid-mode)
 
 (defcustom ido-grid-mode-prefix "-> "
-  "A string to put at the start of the first row"
+  "A string to put at the start of the first row."
   :type 'string
   :group 'ido-grid-mode)
 
 (defface ido-grid-mode-match
   '((t (:underline t)))
-  "The face used to underline matching groups when showing a regular expression"
+  "The face used to underline matching groups when showing a regular expression."
   :group 'ido-grid-mode)
 
 (defface ido-grid-mode-prefix
   '((t (:inherit shadow)))
-  "The face used to display the common match prefix"
+  "The face used to display the common match prefix."
   :group 'ido-grid-mode)
 
 (defcustom ido-grid-mode-always-show-min-rows t
-  "Whether to expand the minibuffer to be `ido-grid-mode-min-rows' under all circumstances (like when there is a single match, or an error - reduces janking around)"
+  "Whether to expand the minibuffer to be `ido-grid-mode-min-rows' under all circumstances (like when there is a single match, or an error - reduces janking around)."
   :group 'ido-grid-mode
   :type 'boolean)
 
 (defcustom ido-grid-mode-keys '(tab backtab up down left right C-n C-p)
-  "Which keys to fiddle with by default. Tab and backtab will move to the next/prev thing, arrow keys
-will move around in the grid, and C-n, C-p will scroll the grid in pages."
+  "Which keys to reconfigure in the minibuffer.
+
+Tab and backtab will move to the next/prev thing, arrow keys will
+move around in the grid, and C-n, C-p will scroll the grid in
+pages."
   :group 'ido-grid-mode
   :type '(set (const tab) (const backtab) (const up) (const down) (const left) (const right) (const C-n) (const C-p)))
 
@@ -137,14 +145,14 @@ will move around in the grid, and C-n, C-p will scroll the grid in pages."
   :group 'ido-grid-mode)
 
 (defcustom ido-grid-mode-advise-temp '(ido-kill-buffer-at-head ido-delete-file-at-head)
-  "Functions which will want to see the right thing at the head of the ido list, but will return to ido later.
-If you've added stuff to ido which operates on the current thing, pop it in this list."
+  "Functions which will refer to `ido-matches', but will return to ido later.
+If you've added stuff to ido which operates on the current match, pop it in this list."
   :type 'hook
   :options '(ido-kill-buffer-at-head ido-delete-file-at-head)
   :group 'ido-grid-mode)
 
 (defcustom ido-grid-mode-start-collapsed nil
-  "If t, ido-grid-mode will start off small, and only display the grid when you press tab.
+  "If t, ido-grid-mode show one line, and display the grid when you press tab.
 \(or call igm-tab, if you haven't asked it to bind <tab> for you - see `ido-grid-mode-keys')"
   :type 'boolean
   :group 'ido-grid-mode)
@@ -158,13 +166,18 @@ If you've added stuff to ido which operates on the current thing, pop it in this
 
 (defvar igm-collapsed nil)
 
-(defun igm-row-major () (eq 'rows ido-grid-mode-order))
-(defun igm-column-major () (not (igm-row-major)))
+(defun igm-row-major ()
+  "Is the grid row major?"
+  (eq 'rows ido-grid-mode-order))
+(defun igm-column-major ()
+  "Is the grid column major?"
+  (not (igm-row-major)))
 
 (defvar ign-invocation-cache
   (make-hash-table :test 'equal :weakness 'key))
 
 (defun igm-mapcar (fn stuff)
+  "Map FN over some STUFF, storing the result in a weak cache."
   (let* ((key (cons fn stuff))
          (existing (gethash key ign-invocation-cache)))
     (or existing (puthash key (mapcar fn stuff)
@@ -181,10 +194,12 @@ If you've added stuff to ido which operates on the current thing, pop it in this
 ;; functions to compute how many columns to use
 
 (defun igm-columns (lengths max-width)
-  "How many columns can be fitted into MAX-WIDTH using items of the specified LENGTHS.
-The items will be placed into columns row-wise, so the first row will contain the first k items, and so on.
-The result is a vector of column widths, or nil if even 1 column is too many.
-Refers to `ido-grid-mode-order' to decide whether to try and fill rows or columns."
+  "Packing items of LENGTHS into MAX-WIDTH, what columns are needed?.
+The items will be placed into columns row-wise, so the first row
+will contain the first k items, and so on.  The result is a
+vector of column widths, or nil if even 1 column is too many.
+Refers to `ido-grid-mode-order' to decide whether to try and fill
+rows or columns."
   (let* ((padding (length ido-grid-mode-padding))
          (lower 1)
          (item-count (length lengths))
@@ -257,19 +272,18 @@ Refers to `ido-grid-mode-order' to decide whether to try and fill rows or column
 ;; functions to layout text in a grid of known dimensions.
 
 (defun igm-pad (string current-length desired-length)
-  "given a STRING, pad it to the DESIRED-LENGTH with spaces, if it is shorter"
+  "Given a STRING of CURRENT-LENGTH, pad it to the DESIRED-LENGTH with spaces, if it is shorter."
   (let ((delta (- desired-length current-length)))
     (cond ((zerop delta) string)
           ((> delta 0) (concat string (make-list delta 32)))
           (t string))))
 
-(defun igm-copy-name (item) (substring (ido-name item) 0))
-
-;; TODO: make this an un-fontified string, and cache it
-;;       then add the fonts on afterwards. less churn.
+(defun igm-copy-name (item)
+  "Copy the `ido-name' of ITEM into a new string."
+  (substring (ido-name item) 0))
 
 (defun igm-string-width (s)
-  "the displayed width of S in the minibuffer, excluding invisible text"
+  "The displayed width of S in the minibuffer, excluding invisible text."
   (let* ((base-length (length s))
          (onset (text-property-any 0 base-length 'invisible t s)))
     (if onset
@@ -379,7 +393,7 @@ Modifies `igm-rows', `igm-columns', `igm-count' and sometimes `igm-offset' as a 
 ;; not going to respect ido-use-faces
 
 (defun igm-gen-first-line ()
-  "Generate the first line suffix text using `ido-grid-mode-first-line' hook"
+  "Generate the first line suffix text using `ido-grid-mode-first-line' hook."
   (concat igm-prefix
           (mapconcat (lambda (x)
                        (cond
@@ -390,7 +404,7 @@ Modifies `igm-rows', `igm-columns', `igm-count' and sometimes `igm-offset' as a 
                      "")))
 
 (defun igm-no-matches ()
-  "If there are no matches, produce a helpful string about it."
+  "If `ido-matches' is emtpy, produce a helpful string about it."
   (unless ido-matches
     (cond (ido-show-confirm-message  " [Confirm]")
           (ido-directory-nonreadable " [Not readable]")
@@ -400,7 +414,7 @@ Modifies `igm-rows', `igm-columns', `igm-count' and sometimes `igm-offset' as a 
     ))
 
 (defun igm-incomplete-regexp ()
-  "If `ido-incomplete-regexp', return the first match coloured using the relevant face"
+  "If `ido-incomplete-regexp', return the first match coloured using the relevant face."
   (when ido-incomplete-regexp
     (concat " "
             (let ((name (igm-copy-name (car ido-matches))))
@@ -408,6 +422,7 @@ Modifies `igm-rows', `igm-columns', `igm-count' and sometimes `igm-offset' as a 
               name))))
 
 (defun igm-exact-match ()
+  "If there is a single match, return just that."
   (when (not (cdr ido-matches))
     (add-face-text-property 0 (length ido-grid-mode-exact-match-prefix)
                             'minibuffer-prompt
@@ -422,8 +437,10 @@ Modifies `igm-rows', `igm-columns', `igm-count' and sometimes `igm-offset' as a 
        name))))
 
 (defun igm-highlight-matches (re s)
-  "given a regex RE and string S, add `ido-vertical-match-face' to all substrings of S which match groups in RE.
-If there are no groups, add the face to all of S."
+  "Highlight matching groups for RE in S.
+Given a regex RE and string S, add `ido-vertical-match-face' to
+all substrings of S which match groups in RE.  If there are no
+groups, add the face to all of S."
   (when (string-match re s)
     (ignore-errors
       ;; try and match each group in case it's a regex with groups
@@ -443,6 +460,7 @@ If there are no groups, add the face to all of S."
           )))))
 
 (defun igm-merged-indicator (item)
+  "Generate the merged indicator string for ITEM."
   (if (and (consp item)
            (sequencep (cdr item))
            (> (length (cdr item)) 1))
@@ -452,7 +470,8 @@ If there are no groups, add the face to all of S."
     ""))
 
 (defun igm-grid (name)
-  (let* ((decoration-regexp (if ido-enable-regexp ido-text (regexp-quote name)))
+  "Draw the grid for input NAME."
+  (let* ((decoration-regexp (if ido-enable-regexp name (regexp-quote name)))
          (max-width (- (window-body-width (minibuffer-window)) 1))
          (decorator (lambda (name item row column offset)
                       (concat
@@ -479,6 +498,7 @@ If there are no groups, add the face to all of S."
     (concat first-line "\n" (nth 0 generated-grid))))
 
 (defun igm-pad-missing-rows (s)
+  "Pad out S to at least `ido-grid-mode-min-rows'."
   (if ido-grid-mode-always-show-min-rows
       (let ((rows 0))
         (dotimes (i (length s))
@@ -490,6 +510,7 @@ If there are no groups, add the face to all of S."
     s))
 
 (defun igm-completions (name)
+  "Generate the prospect grid for input NAME."
   (setf igm-rows 1
         igm-columns 1
         igm-count 1)
@@ -515,7 +536,8 @@ If there are no groups, add the face to all of S."
            )))))
 
 (defun ido-grid-mode-long-count ()
-  "For use in `ido-grid-mode-first-line. Produces a string like '10/20, 8 not shown'
+  "For use in `ido-grid-mode-first-line.
+Produces a string like '10/20, 8 not shown'
 to say that there are 20 candidates, of
 which 10 match, and 8 are off-screen."
   (let ((count (length ido-matches))
@@ -526,48 +548,44 @@ which 10 match, and 8 are off-screen."
       (format "%d/%d" count cand))))
 
 (defun ido-grid-mode-count ()
-  "For use in `ido-grid-mode-first-line'. Counts matches, and tells you how many you can see in the grid."
+  "For use in `ido-grid-mode-first-line'.
+Counts matches, and tells you how many you can see in the grid."
   (let ((count (length ido-matches)))
     (if (> count igm-count)
         (format "%d/%d" igm-count count)
       (number-to-string count))))
 
-(defun ido-grid-mode-file-path ()
-  "For use in `ido-grid-mode-first-line'. If the highlighted thing names a buffer visiting a file,
-displays the path to that file."
-  (let* ((item (ido-name (nth igm-offset ido-matches)))
-         (b (get-buffer item)))
-    (when (and b
-               (buffer-file-name b))
-      (buffer-file-name b))))
-
 ;; movement in grid keys
+(defun igm-move (dr dc)
+  "Move `igm-offset' by DR rows and DC cols."
+  (let* ((nrows igm-rows)
+         (ncols igm-columns)
 
-(defmacro igm-move (direction)
-  `(let* ((nrows igm-rows)
-          (ncols igm-columns)
-          (off   igm-offset)
+         (row   (if (igm-row-major) (/ igm-offset igm-rows) (% igm-offset igm-rows)))
+         (col   (if (igm-row-major) (% igm-offset igm-rows) (/ igm-offset igm-rows))))
 
-          (row   (if (igm-row-major) (/ igm-offset igm-rows) (% igm-offset igm-rows)))
-          (col   (if (igm-row-major) (% igm-offset igm-rows) (/ igm-offset igm-rows))))
-     ,(pcase direction
-        (`u '(if (zerop row)
-                (setf row (- nrows 1)
-                      col (- col 1))
-              (decf row)))
-        (`d '(if (= (1+ row) nrows)
-                (setf row 0
-                      col (1+ col))
-              (incf row)))
-        (`l '(if (zerop col)
-                (setf col (- ncols 1)
-                      row (- row 1))
-              (decf col)))
-        (`r '(if (= (1+ col) ncols)
-                (setf col 0
-                      row (1+ row))
-              (incf col)))
-        )
+    (incf row dr)
+    (incf col dc)
+
+    (unless (or (and (= col 0)
+                     (= row -1))
+                (and (= row nrows)
+                     (= (1+ col) ncols)))
+      (while (< row 0)
+        (decf col)
+        (incf row nrows))
+
+      (while (>= row nrows)
+        (incf col)
+        (decf row nrows))
+
+      (while (< col 0)
+        (decf row)
+        (incf col ncols))
+
+      (while (>= col ncols)
+        (incf row)
+        (decf col ncols)))
 
      (setf igm-offset
            (if (igm-row-major)
@@ -587,41 +605,51 @@ displays the path to that file."
             (setf igm-offset 0)))
      ))
 
+
+
 (defun igm-left ()
+  "Move left in the grid."
   (interactive)
-  (igm-move l))
+  (igm-move 0 -1))
 
 (defun igm-right ()
+  "Move right in the grid."
   (interactive)
-  (igm-move r))
+  (igm-move 0 1))
 
 (defun igm-up ()
+  "Move up in the grid."
   (interactive)
-  (igm-move u))
+  (igm-move -1 0))
 
 (defun igm-down ()
+  "Move down in the grid."
   (interactive)
-  (igm-move d))
+  (igm-move 1 0))
 
 (defun igm-previous ()
+  "Move up or left in the grid."
   (interactive)
   (if (igm-row-major)
       (call-interactively #'igm-left)
     (call-interactively #'igm-up)))
 
 (defun igm-next ()
+  "Move down or right in the grid."
   (interactive)
   (if (igm-row-major)
       (call-interactively #'igm-right)
     (call-interactively #'igm-down)))
 
 (defun igm-tab ()
+  "Move to the next thing in the grid, or show the grid."
   (interactive)
   (if (and igm-collapsed (< igm-count (length ido-matches)))
       (setf igm-collapsed nil)
     (call-interactively #'igm-next)))
 
 (defun igm-previous-page ()
+  "Page up in the grid."
   (interactive)
   (when (and ido-matches
              (< igm-count (length ido-matches)))
@@ -640,6 +668,7 @@ displays the path to that file."
   (setf igm-offset (- igm-count 1)))
 
 (defun igm-next-page ()
+  "Page down in the grid."
   (interactive)
   (when (and ido-matches
              (< igm-count (length ido-matches)))
@@ -654,28 +683,33 @@ displays the path to that file."
 ;; glue to ido
 
 (defun igm-advise-match-temporary (o &rest args)
+  "Advice for things which use `ido-matches' temporarily."
   (let ((ido-matches (nthcdr igm-offset ido-matches))
         (ido-offset 0))
     (apply o args)))
 
 (defun igm-advise-match-permanent (o &rest args)
+  "Advice for things which use `ido-matches' permanently"
   (dotimes (n igm-offset) (ido-next-match))
   (setf igm-offset 0)
   (apply o args))
 
 (defun igm-advise-functions ()
+  "Add advice to functions which need it."
   (dolist (fn ido-grid-mode-advise-perm)
     (advice-add fn :around #'igm-advise-match-permanent))
   (dolist (fn ido-grid-mode-advise-temp)
     (advice-add fn :around #'igm-advise-match-temporary)))
 
 (defun igm-unadvise-functions ()
+  "Remove added advice."
   (dolist (fn ido-grid-mode-advise-perm)
     (advice-remove fn #'igm-advise-match-permanent))
   (dolist (fn ido-grid-mode-advise-temp)
     (advice-remove fn #'igm-advise-match-temporary)))
 
 (defun igm-ido-setup ()
+  "Setup key bindings, etc."
   (setf igm-offset 0)
   (setf igm-collapsed ido-grid-mode-start-collapsed)
 
@@ -698,6 +732,7 @@ displays the path to that file."
 (defvar igm-old-cannot-complete-command nil)
 
 (defun igm-enable ()
+  "Turn on ido-grid-mode."
   (setq igm-old-completions (symbol-function 'ido-completions))
   (setq igm-old-cannot-complete-command ido-cannot-complete-command)
   (fset 'ido-completions #'igm-completions)
@@ -705,6 +740,7 @@ displays the path to that file."
   (igm-advise-functions))
 
 (defun igm-disable ()
+  "Turn off ido-grid-mode."
   (fset 'ido-completions igm-old-completions)
   (setq ido-cannot-complete-command igm-old-cannot-complete-command)
   (remove-hook 'ido-setup-hook #'igm-ido-setup)
