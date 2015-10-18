@@ -137,12 +137,20 @@ If you've added stuff to ido which operates on the current thing, pop it in this
   :options '(ido-kill-buffer-at-head ido-delete-file-at-head)
   :group 'ido-grid-mode)
 
+(defcustom ido-grid-mode-start-collapsed nil
+  "If t, ido-grid-mode will start off small, and only display the grid when you press tab.
+(or call igm-tab, if you haven't asked it to bind <tab> for you)"
+  :type 'boolean
+  :group 'ido-grid-mode)
+
 ;; vars
 (defvar igm-rows 0)
 (defvar igm-columns 0)
 (defvar igm-count 0)
 (defvar igm-offset 0)
 (defvar igm-prefix nil)
+
+(defvar igm-collapsed nil)
 
 (defun igm-row-major () (eq 'rows ido-grid-mode-order))
 (defun igm-column-major () (not (igm-row-major)))
@@ -309,6 +317,7 @@ Modifies `igm-rows', `igm-columns', `igm-count' and sometimes `igm-offset' as a 
            all-rows)
 
           (push (igm-pad (funcall decorate (pop names) (pop items) row col index)
+                         (pop lengths)
                          (aref col-widths col)) all-rows)
 
           (incf index)
@@ -471,11 +480,18 @@ If there are no groups, add the face to all of S."
          (and (stringp ido-common-match-string)
               (> (length ido-common-match-string) (length name))
               (substring ido-common-match-string (length name)))))
-    (igm-pad-missing-rows
-     (or (igm-no-matches)
-         (igm-incomplete-regexp)
-         (igm-exact-match)
-         (igm-grid name)))))
+
+    (let ((ido-grid-mode-max-rows    (if igm-collapsed 1 ido-grid-mode-max-rows))
+          (ido-grid-mode-min-rows    (if igm-collapsed 1 ido-grid-mode-min-rows))
+          (ido-grid-mode-order   (if igm-collapsed 'rows ido-grid-mode-order))
+          (ido-grid-mode-always-show-min-rows (if igm-collapsed nil ido-grid-mode-always-show-min-rows)))
+
+      (igm-pad-missing-rows
+       (or (igm-no-matches)
+           (igm-incomplete-regexp)
+           (igm-exact-match)
+           (igm-grid name)
+           )))))
 
 (defun ido-grid-prefix ()
   "Display the ido common match prefix if there is one.."
@@ -571,6 +587,12 @@ If there are no groups, add the face to all of S."
       (call-interactively #'igm-right)
     (call-interactively #'igm-down)))
 
+(defun igm-tab ()
+  (interactive)
+  (if (and igm-collapsed (< igm-count (length ido-matches)))
+      (setf igm-collapsed nil)
+    (call-interactively #'igm-next)))
+
 (defun igm-previous-page ()
   (interactive)
   (when (and ido-matches
@@ -625,12 +647,13 @@ If there are no groups, add the face to all of S."
   (dolist (fn ido-grid-mode-advise-temp)
     (advice-remove fn #'igm-advise-match-temporary)))
 
-(defun igm-fix-keys ()
+(defun igm-ido-setup ()
   (setf igm-offset 0)
+  (setf igm-collapsed ido-grid-mode-start-collapsed)
 
   (dolist (k ido-grid-mode-keys)
     (case k
-      ('tab (setq ido-cannot-complete-command 'igm-next))
+      ('tab (setq ido-cannot-complete-command 'igm-tab))
       ('backtab (define-key ido-completion-map (kbd "<backtab>") #'igm-previous))
       ('left    (define-key ido-completion-map (kbd "<left>")    #'igm-left))
       ('right   (define-key ido-completion-map (kbd "<right>")   #'igm-right))
@@ -649,13 +672,13 @@ If there are no groups, add the face to all of S."
   (setq igm-old-completions (symbol-function 'ido-completions))
   (setq igm-old-cannot-complete-command ido-cannot-complete-command)
   (fset 'ido-completions #'igm-completions)
-  (add-hook 'ido-setup-hook #'igm-fix-keys)
+  (add-hook 'ido-setup-hook #'igm-ido-setup)
   (igm-advise-functions))
 
 (defun igm-disable ()
   (fset 'ido-completions igm-old-completions)
   (setq ido-cannot-complete-command igm-old-cannot-complete-command)
-  (remove-hook 'ido-setup-hook #'igm-fix-keys)
+  (remove-hook 'ido-setup-hook #'igm-ido-setup)
   (igm-unadvise-functions))
 
 ;;;###autoload
