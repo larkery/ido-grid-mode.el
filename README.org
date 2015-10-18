@@ -32,11 +32,11 @@
 
    At the moment, =ido-use-faces= is ignored, and faces are always added. This is partly because you need a face to see the highlighted item. The faces used are:
 
-   - =ido-grid-match=, which is used to highlight matching substrings
+   - =ido-grid-mode-match=, which is used to highlight matching substrings
    - =ido-first-match=, which is used to highlight the selected prospect
    - =ido-only-match=, which is used when there is only one prospect
    - =ido-subdir=, which is used to colour in directories in ido-find-file
-   - =font-lock-comment-face=, which is used for the common prefix string
+   - =ido-grid-mode-prefix=, which is used for the common prefix string
    - =ido-incomplete-regexp=, which is used when there is an incomplete regexp.
 
 ** Top line
