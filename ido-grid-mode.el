@@ -682,6 +682,8 @@ Counts matches, and tells you how many you can see in the grid."
 
 ;; glue to ido
 
+(defvar igm-old-max-mini-window-height nil)
+
 (defun igm-advise-match-temporary (o &rest args)
   "Advice for things which use `ido-matches' temporarily."
   (let ((ido-matches (nthcdr igm-offset ido-matches))
@@ -692,6 +694,8 @@ Counts matches, and tells you how many you can see in the grid."
   "Advice for things which use `ido-matches' permanently"
   (dotimes (n igm-offset) (ido-next-match))
   (setf igm-offset 0)
+  (setf max-mini-window-height (or igm-old-max-mini-window-height max-mini-window-height)
+        igm-old-max-mini-window-height 0)
   (apply o args))
 
 (defun igm-advise-functions ()
@@ -712,6 +716,9 @@ Counts matches, and tells you how many you can see in the grid."
   "Setup key bindings, etc."
   (setf igm-offset 0)
   (setf igm-collapsed ido-grid-mode-start-collapsed)
+  (setf igm-old-max-mini-window-height max-mini-window-height
+        max-mini-window-height (max max-mini-window-height
+                                    (1+ ido-grid-mode-max-rows)))
 
   (dolist (k ido-grid-mode-keys)
 
