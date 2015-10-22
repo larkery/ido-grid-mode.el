@@ -23,9 +23,17 @@
 
 ;;; Commentary:
 
-;; Makes ido-mode display prospects in a grid. The mechanism is based off
-;; ido-vertical-mode, but it is sufficiently different that I reimplemented
-;; it. The purpose is to look a bit like zsh style completion lists
+;; Makes ido-mode display prospects in a grid. The mechanism is based
+;; on ido-vertical-mode, but it is sufficiently different that I
+;; reimplemented it. The purpose is to look a bit like zsh style
+;; completion lists.  Most of the behaviour can be customized, in the
+;; ido-grid-mode group.  relevant variables are
+;; `ido-grid-mode-min-rows', `ido-grid-mode-max-rows',
+;; `ido-grid-mode-keys', `ido-grid-mode-start-collapsed'.  If you want
+;; ido-grid-mode to sometimes be more horizontal or more vertical, you
+;; can let `ido-grid-mode-max-rows' or `ido-grid-mode-max-columns'
+;; around the call you are interested in (or in advice around an
+;; existing command).
 
 ;;; Code:
 
@@ -60,11 +68,11 @@
 ;; custom settings
 
 (defgroup ido-grid-mode nil
-  "Method for laying out ido prospects in a grid"
+  "Displays ido prospects in a grid in the minibuffer."
   :group 'ido)
 
 (defcustom ido-grid-mode-max-columns nil
-  "The maximum number of columns."
+  "The maximum number of columns - nil means no maximum."
   :type '(choice 'integer (const :tag "Unlimited" nil))
   :group 'ido-grid-mode)
 
@@ -110,13 +118,13 @@ displays more detail about this."
   :group 'ido-grid-mode)
 
 (defcustom ido-grid-mode-prefix "-> "
-  "A string to put at the start of the first row."
+  "A string to put at the start of the first row when there isn't an exact match."
   :type 'string
   :group 'ido-grid-mode)
 
 (defface ido-grid-mode-match
   '((t (:underline t)))
-  "The face used to underline matching groups when showing a regular expression."
+  "The face used to mark up matching groups when showing a regular expression."
   :group 'ido-grid-mode)
 
 (defface ido-grid-mode-prefix
@@ -125,7 +133,7 @@ displays more detail about this."
   :group 'ido-grid-mode)
 
 (defcustom ido-grid-mode-always-show-min-rows t
-  "Whether to expand the minibuffer to be `ido-grid-mode-min-rows' under all circumstances (like when there is a single match, or an error - reduces janking around)."
+  "Whether to expand the minibuffer to be `ido-grid-mode-min-rows' under all circumstances (like when there is a single match, or an error in the input)."
   :group 'ido-grid-mode
   :type 'boolean)
 
@@ -152,8 +160,10 @@ If you've added stuff to ido which operates on the current match, pop it in this
   :group 'ido-grid-mode)
 
 (defcustom ido-grid-mode-start-collapsed nil
-  "If t, ido-grid-mode show one line, and display the grid when you press tab.
-\(or call igm-tab, if you haven't asked it to bind <tab> for you - see `ido-grid-mode-keys')"
+  "If t, ido-grid-mode shows one line when it starts, and displays the grid when you press tab.
+
+Note that this depends on `ido-grid-mode-keys' having tab
+enabled; if it is not, bind something to `igm-tab' to un-collapse."
   :type 'boolean
   :group 'ido-grid-mode)
 
