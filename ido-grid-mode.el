@@ -4,7 +4,7 @@
 
 ;; Author: Tom Hinton
 ;; Maintainer: Tom Hinton <t@larkery.com>
-;; Version: 1.0.0
+;; Version: 1.0.1
 ;; Keywords: convenience
 ;; URL: https://github.com/larkery/ido-grid-mode.el
 ;; Package-Requires: ((emacs "24.4") (cl-lib))
