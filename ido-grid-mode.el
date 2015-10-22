@@ -129,7 +129,7 @@ displays more detail about this."
   "The face used to mark up matching groups when showing a regular expression."
   :group 'ido-grid-mode)
 
-(defface ido-grid-mode-prefix
+(defface ido-grid-mode-common-match
   '((t (:inherit shadow)))
   "The face used to display the common match prefix."
   :group 'ido-grid-mode)
@@ -174,7 +174,7 @@ enabled; if it is not, bind something to `ido-grid-mode-tab' to un-collapse."
 (defvar ido-grid-mode-columns 0)
 (defvar ido-grid-mode-count 0)
 (defvar ido-grid-mode-offset 0)
-(defvar ido-grid-mode-prefix nil)
+(defvar ido-grid-mode-common-match nil)
 
 (defvar ido-grid-mode-collapsed nil)
 
@@ -406,7 +406,7 @@ Modifies `ido-grid-mode-rows', `ido-grid-mode-columns', `ido-grid-mode-count' an
 
 (defun ido-grid-mode-gen-first-line ()
   "Generate the first line suffix text using `ido-grid-mode-first-line' hook."
-  (concat ido-grid-mode-prefix
+  (concat ido-grid-mode-common-match
           (mapconcat (lambda (x)
                        (cond
                         ((functionp x) (or (funcall x) ""))
@@ -527,12 +527,12 @@ groups, add the face to all of S."
         ido-grid-mode-columns 1
         ido-grid-mode-count 1)
 
-  (let ((ido-grid-mode-prefix
+  (let ((ido-grid-mode-common-match
          (and (stringp ido-common-match-string)
               (> (length ido-common-match-string) (length name))
               (substring ido-common-match-string (length name)))))
-    (when ido-grid-mode-prefix
-      (add-face-text-property 0 (length ido-grid-mode-prefix) 'ido-grid-mode-prefix nil ido-grid-mode-prefix))
+    (when ido-grid-mode-common-match
+      (add-face-text-property 0 (length ido-grid-mode-common-match) 'ido-grid-mode-common-match nil ido-grid-mode-common-match))
 
     (let ((ido-grid-mode-max-rows    (if ido-grid-mode-collapsed 1 ido-grid-mode-max-rows))
           (ido-grid-mode-min-rows    (if ido-grid-mode-collapsed 1 ido-grid-mode-min-rows))
