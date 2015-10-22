@@ -7,7 +7,7 @@
 ;; Version: 1.0.0
 ;; Keywords: convenience
 ;; URL: https://github.com/larkery/ido-grid-mode.el
-;; Package-Requires: ((emacs "24"))
+;; Package-Requires: ((emacs "24.4") (cl-lib))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@
 
 ;;; Code:
 
-(eval-when-compile (require 'cl))
+(eval-when-compile (require 'cl-lib))
 (require 'ido)
 
 ;;; The following four variables and the first three comments are lifted
@@ -255,15 +255,15 @@ rows or columns."
                    (let ((w (aref widths column)))
                      (when (> length w)
                        (ido-grid-mode-debug (format "%dx%d expands %d to %d" row column w length))
-                       (incf total-width (- length w))
+                       (cl-incf total-width (- length w))
                        (aset widths column length)))
 
                    ;; bump counters
                    (if (ido-grid-mode-row-major)
                        (progn (setq column (% (1+ column) middle))
-                              (when (zerop column) (incf row)))
+                              (when (zerop column) (cl-incf row)))
                      (progn (setq row (% (1+ row) rows))
-                            (when (zerop row) (incf column))))
+                            (when (zerop row) (cl-incf column))))
 
                    ;; die if overflow
                    (when (> total-width spare-width)
@@ -272,11 +272,11 @@ rows or columns."
 
           ;; move bound in search
           (if overflow
-              (setf upper middle)
-            (progn (setf lower middle
+              (setq upper middle)
+            (progn (setq lower middle
                          lower-solution widths)
                    (if (= (1+ lower) upper)
-                       (setf upper lower))))
+                       (setq upper lower))))
           )))
     (ido-grid-mode-debug (format "solution: %s" lower-solution))
     lower-solution))
@@ -303,9 +303,9 @@ rows or columns."
               (offset 0))
 
           (while onset
-            (setf offset (text-property-any onset base-length 'invisible nil s))
-            (decf base-width (string-width (substring s onset offset)))
-            (setf onset (text-property-any offset base-length 'invisible t s)))
+            (setq offset (text-property-any onset base-length 'invisible nil s))
+            (cl-decf base-width (string-width (substring s onset offset)))
+            (setq onset (text-property-any offset base-length 'invisible t s)))
 
           base-width)
       (string-width s))))
@@ -338,13 +338,13 @@ Modifies `ido-grid-mode-rows', `ido-grid-mode-columns', `ido-grid-mode-count' an
                             'minibuffer-prompt
                             nil ido-grid-mode-prefix)
 
-    (setf ido-grid-mode-rows    row-count
+    (setq ido-grid-mode-rows    row-count
           ido-grid-mode-columns col-count)
 
-    (setf ido-grid-mode-count (min (* ido-grid-mode-rows ido-grid-mode-columns)
+    (setq ido-grid-mode-count (min (* ido-grid-mode-rows ido-grid-mode-columns)
                                    (length items)))
 
-    (setf ido-grid-mode-offset (max 0 (min ido-grid-mode-offset (- ido-grid-mode-count 1))))
+    (setq ido-grid-mode-offset (max 0 (min ido-grid-mode-offset (- ido-grid-mode-count 1))))
 
     (if (ido-grid-mode-row-major)
         ;; this is the row-major code, which is easy
@@ -359,18 +359,18 @@ Modifies `ido-grid-mode-rows', `ido-grid-mode-columns', `ido-grid-mode-count' an
                                    (pop lengths)
                                    (aref col-widths col)) all-rows)
 
-          (incf index)
-          (incf col)
+          (cl-incf index)
+          (cl-incf col)
 
           (when (= col col-count)
-            (setf col 0)
-            (incf row)
+            (setq col 0)
+            (cl-incf row)
             (if (< row row-count) (push "\n" all-rows))))
 
       ;; column major:
       (let ((row-lists (make-vector row-count nil)))
         (while (and names (< index grid-size))
-          (setf row (% index row-count)
+          (setq row (% index row-count)
                 col (/ index row-count))
 
           (push
@@ -385,7 +385,7 @@ Modifies `ido-grid-mode-rows', `ido-grid-mode-columns', `ido-grid-mode-count' an
                                    (aref col-widths col))
                 (elt row-lists (- row-count (1+ row))))
 
-          (incf index))
+          (cl-incf index))
 
         (dotimes (i (- (length row-lists) 1))
           (push "\n" (aref row-lists (- (length row-lists) 1 i))))
@@ -394,7 +394,7 @@ Modifies `ido-grid-mode-rows', `ido-grid-mode-columns', `ido-grid-mode-count' an
         ;; each one is a row, and we want to put them
         ;; all into all-rows, with "\n" as well
         ;; each row is backwards
-        (setf all-rows (apply #'nconc (append row-lists nil)))
+        (setq all-rows (apply #'nconc (append row-lists nil)))
         ))
 
     (list (apply #'concat (nreverse all-rows))
@@ -462,7 +462,7 @@ groups, add the face to all of S."
                                   (match-end group)
                                   'ido-grid-mode-match
                                   nil s)
-          (incf group))
+          (cl-incf group))
         ;; it's not a regex with groups, so just mark the whole match region.
         (when (= 1 group)
           (add-face-text-property (match-beginning 0)
@@ -515,7 +515,7 @@ groups, add the face to all of S."
       (let ((rows 0))
         (dotimes (i (length s))
           (when (= (aref s i) 10)
-            (incf rows)))
+            (cl-incf rows)))
         (if (< rows ido-grid-mode-min-rows)
             (apply #'concat (cons s (make-list (- ido-grid-mode-min-rows rows) "\n")))
           s))
@@ -523,7 +523,7 @@ groups, add the face to all of S."
 
 (defun ido-grid-mode-completions (name)
   "Generate the prospect grid for input NAME."
-  (setf ido-grid-mode-rows 1
+  (setq ido-grid-mode-rows 1
         ido-grid-mode-columns 1
         ido-grid-mode-count 1)
 
@@ -576,30 +576,30 @@ Counts matches, and tells you how many you can see in the grid."
          (row   (if (ido-grid-mode-row-major) (/ ido-grid-mode-offset ido-grid-mode-rows) (% ido-grid-mode-offset ido-grid-mode-rows)))
          (col   (if (ido-grid-mode-row-major) (% ido-grid-mode-offset ido-grid-mode-rows) (/ ido-grid-mode-offset ido-grid-mode-rows))))
 
-    (incf row dr)
-    (incf col dc)
+    (cl-incf row dr)
+    (cl-incf col dc)
 
     (unless (or (and (= col 0)
                      (= row -1))
                 (and (= row nrows)
                      (= (1+ col) ncols)))
       (while (< row 0)
-        (decf col)
-        (incf row nrows))
+        (cl-decf col)
+        (cl-incf row nrows))
 
       (while (>= row nrows)
-        (incf col)
-        (decf row nrows))
+        (cl-incf col)
+        (cl-decf row nrows))
 
       (while (< col 0)
-        (decf row)
-        (incf col ncols))
+        (cl-decf row)
+        (cl-incf col ncols))
 
       (while (>= col ncols)
-        (incf row)
-        (decf col ncols)))
+        (cl-incf row)
+        (cl-decf col ncols)))
 
-    (setf ido-grid-mode-offset
+    (setq ido-grid-mode-offset
           (if (ido-grid-mode-row-major)
               (+ col (* row ncols))
             (+ row (* col nrows))))
@@ -614,7 +614,7 @@ Counts matches, and tells you how many you can see in the grid."
 
           ;; catchall - if we are out of bounds in any way, just reset
           ((not (< -1 ido-grid-mode-offset ido-grid-mode-count))
-           (setf ido-grid-mode-offset 0)))
+           (setq ido-grid-mode-offset 0)))
     ))
 
 
@@ -657,7 +657,7 @@ Counts matches, and tells you how many you can see in the grid."
   "Move to the next thing in the grid, or show the grid."
   (interactive)
   (if (and ido-grid-mode-collapsed (< ido-grid-mode-count (length ido-matches)))
-      (setf ido-grid-mode-collapsed nil)
+      (setq ido-grid-mode-collapsed nil)
     (call-interactively #'ido-grid-mode-next)))
 
 (defun ido-grid-mode-previous-page ()
@@ -671,13 +671,13 @@ Counts matches, and tells you how many you can see in the grid."
     (let ((shift 0))
       (while (<= shift ido-grid-mode-count)
         (ido-prev-match)
-        (incf shift)
+        (cl-incf shift)
         (ido-grid-mode-completions ""))
       ;; now we go forwards again, so that the previous first item is the new last item
       (ido-next-match)
       ;; and do the layout one more time, so that `ido-vertical--visible-count' is right
       (ido-grid-mode-completions "")))
-  (setf ido-grid-mode-offset (- ido-grid-mode-count 1)))
+  (setq ido-grid-mode-offset (- ido-grid-mode-count 1)))
 
 (defun ido-grid-mode-next-page ()
   "Page down in the grid."
@@ -690,7 +690,7 @@ Counts matches, and tells you how many you can see in the grid."
       (setq ido-cur-list (ido-chop ido-cur-list next)))
     (setq ido-rescan t)
     (setq ido-rotate t))
-  (setf ido-grid-mode-offset 0))
+  (setq ido-grid-mode-offset 0))
 
 ;; glue to ido
 
@@ -705,8 +705,8 @@ Counts matches, and tells you how many you can see in the grid."
 (defun ido-grid-mode-advise-match-permanent (o &rest args)
   "Advice for things which use `ido-matches' permanently"
   (dotimes (_n ido-grid-mode-offset) (ido-next-match))
-  (setf ido-grid-mode-offset 0)
-  (setf max-mini-window-height (or ido-grid-mode-old-max-mini-window-height max-mini-window-height)
+  (setq ido-grid-mode-offset 0)
+  (setq max-mini-window-height (or ido-grid-mode-old-max-mini-window-height max-mini-window-height)
         ido-grid-mode-old-max-mini-window-height 0)
   (apply o args))
 
@@ -726,23 +726,22 @@ Counts matches, and tells you how many you can see in the grid."
 
 (defun ido-grid-mode-ido-setup ()
   "Setup key bindings, etc."
-  (setf ido-grid-mode-offset 0)
-  (setf ido-grid-mode-collapsed ido-grid-mode-start-collapsed)
-  (setf ido-grid-mode-old-max-mini-window-height max-mini-window-height
+  (setq ido-grid-mode-offset 0)
+  (setq ido-grid-mode-collapsed ido-grid-mode-start-collapsed)
+  (setq ido-grid-mode-old-max-mini-window-height max-mini-window-height
         max-mini-window-height (max max-mini-window-height
                                     (1+ ido-grid-mode-max-rows)))
 
   (dolist (k ido-grid-mode-keys)
-
-    (pcase k
-      (`tab (setq ido-cannot-complete-command 'ido-grid-mode-tab))
-      (`backtab (define-key ido-completion-map (kbd "<backtab>") #'ido-grid-mode-previous))
-      (`left    (define-key ido-completion-map (kbd "<left>")    #'ido-grid-mode-left))
-      (`right   (define-key ido-completion-map (kbd "<right>")   #'ido-grid-mode-right))
-      (`up      (define-key ido-completion-map (kbd "<up>")      #'ido-grid-mode-up))
-      (`down    (define-key ido-completion-map (kbd "<down>")    #'ido-grid-mode-down))
-      (`C-n     (define-key ido-completion-map (kbd "C-n")       #'ido-grid-mode-next-page))
-      (`C-p     (define-key ido-completion-map (kbd "C-p")       #'ido-grid-mode-previous-page))
+    (cl-case k
+      ('tab (setq ido-cannot-complete-command 'ido-grid-mode-tab))
+      ('backtab (define-key ido-completion-map (kbd "<backtab>") #'ido-grid-mode-previous))
+      ('left    (define-key ido-completion-map (kbd "<left>")    #'ido-grid-mode-left))
+      ('right   (define-key ido-completion-map (kbd "<right>")   #'ido-grid-mode-right))
+      ('up      (define-key ido-completion-map (kbd "<up>")      #'ido-grid-mode-up))
+      ('down    (define-key ido-completion-map (kbd "<down>")    #'ido-grid-mode-down))
+      ('C-n     (define-key ido-completion-map (kbd "C-n")       #'ido-grid-mode-next-page))
+      ('C-p     (define-key ido-completion-map (kbd "C-p")       #'ido-grid-mode-previous-page))
       )))
 
 ;; this could be done with advice - is advice better?
