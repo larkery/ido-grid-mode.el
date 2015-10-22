@@ -697,7 +697,7 @@ Counts matches, and tells you how many you can see in the grid."
 (defun igm-advise-match-temporary (o &rest args)
   "Advice for things which use `ido-matches' temporarily."
   (let ((ido-matches (nthcdr igm-offset ido-matches))
-        (ido-offset 0))
+        (igm-offset 0))
     (apply o args)))
 
 (defun igm-advise-match-permanent (o &rest args)
