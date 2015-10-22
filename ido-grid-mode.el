@@ -7,6 +7,7 @@
 ;; Version: 1.0.0
 ;; Keywords: convenience
 ;; URL: https://github.com/larkery/ido-grid-mode.el
+;; Package-Requires: ((emacs "24"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -38,6 +39,7 @@
 ;;; Code:
 
 (eval-when-compile (require 'cl))
+(require 'ido)
 
 ;;; The following four variables and the first three comments are lifted
 ;;; directly from `ido.el'; they are defined here to avoid compile-log
@@ -193,7 +195,7 @@ enabled; if it is not, bind something to `igm-tab' to un-collapse."
     (or existing (puthash key (mapcar fn stuff)
                           ign-invocation-cache))))
 
-(defmacro igm-debug (s)
+(defmacro igm-debug (_s)
   ;; `(with-current-buffer
   ;;      (get-buffer-create "ido-grid-debug")
   ;;    (end-of-buffer)
@@ -483,7 +485,7 @@ groups, add the face to all of S."
   "Draw the grid for input NAME."
   (let* ((decoration-regexp (if ido-enable-regexp name (regexp-quote name)))
          (max-width (- (window-body-width (minibuffer-window)) 1))
-         (decorator (lambda (name item row column offset)
+         (decorator (lambda (name item _row _column offset)
                       (concat
                        (let ((name (substring name 0))
                              (l (length name)))
@@ -702,7 +704,7 @@ Counts matches, and tells you how many you can see in the grid."
 
 (defun igm-advise-match-permanent (o &rest args)
   "Advice for things which use `ido-matches' permanently"
-  (dotimes (n igm-offset) (ido-next-match))
+  (dotimes (_n igm-offset) (ido-next-match))
   (setf igm-offset 0)
   (setf max-mini-window-height (or igm-old-max-mini-window-height max-mini-window-height)
         igm-old-max-mini-window-height 0)
