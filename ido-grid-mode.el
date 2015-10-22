@@ -38,6 +38,7 @@
 ;;; Code:
 
 (eval-when-compile (require 'cl))
+(require 'ido)
 
 ;;; The following four variables and the first three comments are lifted
 ;;; directly from `ido.el'; they are defined here to avoid compile-log
