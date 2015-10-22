@@ -7,6 +7,7 @@
 ;; Version: 1.0.0
 ;; Keywords: convenience
 ;; URL: https://github.com/larkery/ido-grid-mode.el
+;; Package-Requires: ((emacs "24"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
