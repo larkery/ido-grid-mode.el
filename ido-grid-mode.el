@@ -199,7 +199,7 @@ enabled; if it is not, bind something to `ido-grid-mode-tab' to un-collapse."
   ;; `(with-current-buffer
   ;;      (get-buffer-create "ido-grid-debug")
   ;;    (end-of-buffer)
-  ;;    (insert ,s)
+  ;;    (insert ,_s)
   ;;    (insert "\n"))
   )
 
@@ -278,8 +278,13 @@ rows or columns."
                    (if (= (1+ lower) upper)
                        (setq upper lower))))
           )))
-    (ido-grid-mode-debug (format "solution: %s" lower-solution))
-    lower-solution))
+    (ido-grid-mode-debug (format "input:%s %d, solution: %s"
+                                 lengths
+                                 max-width
+                                 lower-solution))
+
+    (cl-remove-if #'zerop lower-solution)
+    ))
 
 ;; functions to layout text in a grid of known dimensions.
 
