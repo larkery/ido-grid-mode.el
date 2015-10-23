@@ -700,6 +700,7 @@ Counts matches, and tells you how many you can see in the grid."
 ;; glue to ido
 
 (defvar ido-grid-mode-old-max-mini-window-height nil)
+(defvar ido-grid-mode-old-resize-mini-windows 'unknown)
 
 (defun ido-grid-mode-advise-match-temporary (o &rest args)
   "Advice for things which use `ido-matches' temporarily."
@@ -712,6 +713,10 @@ Counts matches, and tells you how many you can see in the grid."
   (dotimes (_n ido-grid-mode-offset) (ido-next-match))
   (setq ido-grid-mode-offset 0)
   (setq max-mini-window-height (or ido-grid-mode-old-max-mini-window-height max-mini-window-height)
+        resize-mini-windows (or (unless (equal ido-grid-mode-old-resize-mini-windows 'unknown)
+                                  ido-grid-mode-old-resize-mini-windows)
+                                resize-mini-windows)
+        ido-grid-mode-old-resize-mini-windows 'unknown
         ido-grid-mode-old-max-mini-window-height 0)
   (apply o args))
 
@@ -734,6 +739,8 @@ Counts matches, and tells you how many you can see in the grid."
   (setq ido-grid-mode-offset 0)
   (setq ido-grid-mode-collapsed ido-grid-mode-start-collapsed)
   (setq ido-grid-mode-old-max-mini-window-height max-mini-window-height
+        ido-grid-mode-old-resize-mini-windows resize-mini-windows
+        resize-mini-windows t
         max-mini-window-height (max max-mini-window-height
                                     (1+ ido-grid-mode-max-rows)))
 

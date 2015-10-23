@@ -16,13 +16,42 @@
 
 * Configuration
 
-  Most things are configurable through =M-x customize-group ido-grid-mode=. The important things are =ido-grid-mode-max-rows= and =ido-grid-mode-min-rows=, which determine the size of the thing, and perhaps =ido-grid-mode-order=. If you want a vertical list when doing a completing-read or similar, you can let-bind =ido-grid-mode-max-columns=:
+  Most things are configurable through =M-x customize-group ido-grid-mode=. The important things are =ido-grid-mode-max-rows= and =ido-grid-mode-min-rows=, which determine the size of the thing, and perhaps =ido-grid-mode-order=.
 
-  #+BEGIN_SRC elisp
-    (let ((ido-grid-mode-max-columns 1)
-          (ido-grid-mode-max-rows 30))
-      (completing-read ...))
-  #+END_SRC
+** Size and formatting
+
+   The grid is laid out to fit into the minibuffer's available width, assuming a fixed-width font. Layout is either done left-right then top-bottom or top-bottom then left-right, depending on whether =ido-grid-mode-order= is =rows= or =columns=. I prefer =columns=, which is similar to what zsh does.
+
+   No more than =ido-grid-mode-max-rows= rows should be produced. If the layout can be achieved with fewer rows, then fewer rows will appear, limited by =ido-grid-mode-min-rows=. By default these are the same, which keeps the minibuffer a constant height. If you want the minibuffer to grow and shrink appropriately reduce the min rows.
+
+   If you want the minibuffer to typically be small, but display a large grid on demand, you can use =ido-grid-mode-start-collapsed=. This will limit it to a single row until you press =<tab>=, so long as there are things which would be offscreen. I find this a good setting, as it means that things don't move around on the screen until you want them to.
+
+*** Making a vertical list sometimes
+
+    If you want a particular bit of code to use a vertical list (or some other known layout) you can =let= the appropriate variables around it.
+
+    #+BEGIN_SRC elisp
+      (let ((ido-grid-mode-max-columns 1)
+            (ido-grid-mode-max-rows 30))
+        (completing-read ...))
+    #+END_SRC
+
+    You might want to do this in an advice, e.g.:
+
+    #+BEGIN_SRC elisp
+      ;; make projectile-find-file vertical list
+
+      (defun ido-vertical-please (o &rest args)
+        (let ((ido-grid-mode-max-columns 1)
+              (ido-grid-mode-max-rows 15) ;; bigger list than usual
+              (ido-grid-mode-min-rows 1) ;; let it shrink
+              (ido-grid-mode-start-collapsed nil) ;; pop up tall at the start
+              ;; why not have a different prefix as well?
+              (ido-grid-mode-prefix ":: "))
+          (apply o args)))
+
+      (advice-add 'projectile-find-file :around #'ido-vertical-please)
+    #+END_SRC
 
 ** Keys
 
