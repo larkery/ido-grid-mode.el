@@ -124,6 +124,11 @@ displays more detail about this."
   :type 'string
   :group 'ido-grid-mode)
 
+(defcustom ido-grid-mode-prefix-scrolls nil
+  "Whether the prefix arrow should go on the row where the current item is."
+  :type 'boolean
+  :group 'ido-grid-mode)
+
 (defface ido-grid-mode-match
   '((t (:underline t)))
   "The face used to mark up matching groups when showing a regular expression."
@@ -167,6 +172,20 @@ If you've added stuff to ido which operates on the current match, pop it in this
 Note that this depends on `ido-grid-mode-keys' having tab
 enabled; if it is not, bind something to `ido-grid-mode-tab' to un-collapse."
   :type 'boolean
+  :group 'ido-grid-mode)
+
+(defcustom ido-grid-mode-scroll-down #'ido-grid-mode-next-page
+  "The function which will be called when the cursor is moved beyond the end of the grid.
+Consider `ido-grid-mode-next-page' or `ido-grid-mode-next-row'.
+Next row is only really sensible when `ido-grid-mode-order' is row-wise, and the column count is small and fixed.."
+  :type 'function
+  :group 'ido-grid-mode)
+
+(defcustom ido-grid-mode-scroll-up #'ido-grid-mode-previous-page
+  "The function which will be called when the cursor is moved before the end of the grid.
+Consider `ido-grid-mode-previous-page' or `ido-grid-mode-previous-row'.
+Previous row is only really sensible when `ido-grid-mode-order' is row-wise, and the column count is small and fixed."
+  :type 'function
   :group 'ido-grid-mode)
 
 ;; vars
@@ -356,7 +375,9 @@ Modifies `ido-grid-mode-rows', `ido-grid-mode-columns', `ido-grid-mode-count' an
         (while (and names (< row row-count))
           (push
            (if (zerop col)
-               (if (zerop row) ido-grid-mode-prefix row-padding)
+               (if (= row (if ido-grid-mode-prefix-scrolls
+                              (% ido-grid-mode-offset col-count) 0))
+                   ido-grid-mode-prefix row-padding)
              ido-grid-mode-padding)
            all-rows)
 
@@ -380,7 +401,9 @@ Modifies `ido-grid-mode-rows', `ido-grid-mode-columns', `ido-grid-mode-count' an
 
           (push
            (if (zerop col)
-               (if (zerop row) ido-grid-mode-prefix row-padding)
+               (if (= row (if ido-grid-mode-prefix-scrolls
+                              (% ido-grid-mode-offset row-count) 0))
+                   ido-grid-mode-prefix row-padding)
              ido-grid-mode-padding)
            (elt row-lists (- row-count (1+ row))))
 
@@ -573,13 +596,27 @@ Counts matches, and tells you how many you can see in the grid."
       (number-to-string count))))
 
 ;; movement in grid keys
+
+;; if row major
+
+;; 1 2 3 4
+;; 5 6 7 8
+
 (defun ido-grid-mode-move (dr dc)
   "Move `ido-grid-mode-offset' by DR rows and DC cols."
   (let* ((nrows ido-grid-mode-rows)
          (ncols ido-grid-mode-columns)
 
-         (row   (if (ido-grid-mode-row-major) (/ ido-grid-mode-offset ido-grid-mode-rows) (% ido-grid-mode-offset ido-grid-mode-rows)))
-         (col   (if (ido-grid-mode-row-major) (% ido-grid-mode-offset ido-grid-mode-rows) (/ ido-grid-mode-offset ido-grid-mode-rows))))
+         (row   (if (ido-grid-mode-row-major)
+                    (/ ido-grid-mode-offset ido-grid-mode-columns)
+                  (% ido-grid-mode-offset ido-grid-mode-rows)))
+         (col   (if (ido-grid-mode-row-major)
+                    (% ido-grid-mode-offset ido-grid-mode-columns)
+                  (/ ido-grid-mode-offset ido-grid-mode-rows)))
+
+         (col0 col)
+         (row0 row)
+         (off0 ido-grid-mode-offset))
 
     (cl-incf row dr)
     (cl-incf col dc)
@@ -611,18 +648,16 @@ Counts matches, and tells you how many you can see in the grid."
 
     ;; check whether we went out of bounds
     (cond ((or (< row 0) (< col 0))  ; this is the case where we went upwards or left from the top
-           (ido-grid-mode-previous-page))
+           (funcall ido-grid-mode-scroll-up))
 
           ((or (= row nrows) (= col ncols) ; this is the case where we have scrolled down
                (>= ido-grid-mode-offset ido-grid-mode-count))
-           (ido-grid-mode-next-page))
+           (funcall ido-grid-mode-scroll-down))
 
           ;; catchall - if we are out of bounds in any way, just reset
           ((not (< -1 ido-grid-mode-offset ido-grid-mode-count))
            (setq ido-grid-mode-offset 0)))
     ))
-
-
 
 (defun ido-grid-mode-left ()
   "Move left in the grid."
@@ -668,34 +703,56 @@ Counts matches, and tells you how many you can see in the grid."
 (defun ido-grid-mode-previous-page ()
   "Page up in the grid."
   (interactive)
+  (ido-grid-mode-previous-N ido-grid-mode-count)
+  (setq ido-grid-mode-offset (- ido-grid-mode-count 1)))
+
+(defun ido-grid-mode-previous-row ()
+  "Scroll up one row in the grid, kind of.
+It may not be possible to do this unless there is only 1 column."
+  (interactive)
+  (ido-grid-mode-previous-N ido-grid-mode-columns)
+  (setq ido-grid-mode-offset 0))
+
+(defun ido-grid-mode-next-row ()
+  "Scroll down one row in the grid, kind of.
+It may not be possible to do this unless there is only 1 column."
+  (interactive)
+  (ido-grid-mode-next-N ido-grid-mode-columns)
+  (setq ido-grid-mode-offset (- ido-grid-mode-count 1)))
+
+(defun ido-grid-mode-next-page ()
+  "Page down in the grid."
+  (interactive)
+  (ido-grid-mode-next-N ido-grid-mode-count)
+  (setq ido-grid-mode-offset 0))
+
+(defun ido-grid-mode-next-N (n)
+  "Page N items off the top."
+  (when (and ido-matches
+             (< ido-grid-mode-count (length ido-matches)))
+    ;; this is basically what ido-next-match does, but times N
+    ;; it doesn't seem to work in all cases, but it works here.
+    (let ((next (nth n ido-matches)))
+      (setq ido-cur-list (ido-chop ido-cur-list next)))
+    (setq ido-rescan t)
+    (setq ido-rotate t)))
+
+(defun ido-grid-mode-previous-N (n)
+  "Page N items off the bottom."
   (when (and ido-matches
              (< ido-grid-mode-count (length ido-matches)))
     ;; this bit is not efficient, but I don't think people will scroll up much
     ;; rather than working it out properly, we just loop backwards and redo the
     ;; layout until we can't see the item we started on
     (let ((shift 0))
-      (while (<= shift ido-grid-mode-count)
+      (while (<= shift n)
         (ido-prev-match)
         (cl-incf shift)
         (ido-grid-mode-completions ""))
       ;; now we go forwards again, so that the previous first item is the new last item
       (ido-next-match)
       ;; and do the layout one more time, so that `ido-vertical--visible-count' is right
-      (ido-grid-mode-completions "")))
-  (setq ido-grid-mode-offset (- ido-grid-mode-count 1)))
-
-(defun ido-grid-mode-next-page ()
-  "Page down in the grid."
-  (interactive)
-  (when (and ido-matches
-             (< ido-grid-mode-count (length ido-matches)))
-    ;; this is basically what ido-next-match does, but times N
-    ;; it doesn't seem to work in all cases, but it works here.
-    (let ((next (nth ido-grid-mode-count ido-matches)))
-      (setq ido-cur-list (ido-chop ido-cur-list next)))
-    (setq ido-rescan t)
-    (setq ido-rotate t))
-  (setq ido-grid-mode-offset 0))
+      (ido-grid-mode-completions ""))))
 
 ;; glue to ido
 
