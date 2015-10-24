@@ -759,37 +759,72 @@ It may not be possible to do this unless there is only 1 column."
                             ido-grid-mode-columns
                           ido-grid-mode-rows)))
 
+(defun ido-grid-mode-rotate-n (n matches items)
+  "Because ido's prospects are produced by filtering MATCHES to ITEMS,
+normal -rotate can't be used; we have to modify the ITEMS so that MATCHES
+appears rotated."
+
+  ;; example (matches are uppercase)
+  ;; (A B c d e F G H i j) + 2
+  ;; A B F_G H + 2 =>
+  ;; G H A B F
+  ;; we could collect up items and move them
+
+  ;; the last two items in matches need to be in front of the rest?
+
+  ;; find cell with G in items
+  ;; break the cell before
+  ;; append the first cell
+  ;; G is the new head
+
+  ;; this is what ido chop does
+
+  ;; the reverse direction
+  ;; A B_F G H X Y Z - 2 =>
+  ;; F G H X Y Z A B
+  ;; is this essentially the same operation?
+
+  (let* ((match-count (length matches))
+         (n (if (< n 0) (+ match-count n) n))
+         (new-head (nth n matches))
+         (walker items)
+         new-tail)
+
+    (while walker
+      (if (eq new-head (cadr walker))
+          (setq new-tail walker
+                walker nil)
+        (setq walker (cdr walker))))
+
+    ;; splitting point's cdr is the cell whose car is new-head
+    (setq new-head (cdr new-tail)) ;; find new head
+    (setcdr new-tail nil) ;; break the tie
+    (nconc new-head items)))
+
 (defun ido-grid-mode-next-N (n)
   "Page N items off the top."
-  (when (and ido-matches
-             (< ido-grid-mode-count (length ido-matches)))
-    ;; this is basically what ido-next-match does, but times N
-    ;; it doesn't seem to work in all cases, but it works here.
-    (let ((next (nth n ido-matches)))
-      (setq ido-cur-list (ido-chop ido-cur-list next)))
-    (setq ido-rescan t)
-    (setq ido-rotate t))
-  n)
+  ;; argh - this is related to ido-cur-list
+  ;; that's why it doesn't work
+  (setq ido-cur-list (ido-grid-mode-rotate-n n ido-matches ido-cur-list)
+        ido-rescan t
+        ido-rotate t))
 
 (defun ido-grid-mode-previous-N (n)
-  "Page N items off the bottom."
-  (when (and ido-matches
-             (< ido-grid-mode-count (length ido-matches)))
-    ;; this bit is not efficient, but I don't think people will scroll up much
-    ;; rather than working it out properly, we just loop backwards and redo the
-    ;; layout until we can't see the item we started on
-    (let ((shift 0))
-      (while (<= shift n)
-        (ido-prev-match)
-        (cl-incf shift)
-        (ido-grid-mode-completions ""))
-      ;; now we go forwards again, so that the previous first item is the new last item
-      (ido-next-match)
-      ;; and do the layout one more time, so that `ido-vertical--visible-count' is right
-      (ido-grid-mode-completions "")))
-  n)
+  "Page N items off the bottom to the top."
+  (setq ido-cur-list (ido-grid-mode-rotate-n (- n) ido-matches ido-cur-list)
+        ido-rescan t
+        ido-rotate t)
 
-;; glue to ido
+  ;; (when (and ido-matches
+  ;;            (< ido-grid-mode-count (length ido-matches)))
+  ;;   (let ((shift 0))
+  ;;     (while (<= shift ido-grid-mode-count)
+  ;;       (ido-prev-match)
+  ;;       (cl-incf shift)
+  ;;       (ido-grid-mode-completions ""))
+  ;;     (ido-next-match)
+  ;;     (ido-grid-mode-completions "")))
+  )
 
 (defvar ido-grid-mode-old-max-mini-window-height nil)
 (defvar ido-grid-mode-old-resize-mini-windows 'unknown)
