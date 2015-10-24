@@ -23,7 +23,7 @@
 
 ** Size and formatting
 
-   The grid is laid out to fit into the minibuffer's available width, assuming a fixed-width font. Layout is either done left-right then top-bottom or top-bottom then left-right, depending on whether =ido-grid-mode-order= is =rows= or =columns=. I prefer =columns=, which is similar to what zsh does.
+   The grid is laid out to fit into the minibuffer's available width, assuming a fixed-width font. Layout is either done left-right then top-bottom or top-bottom then left-right, depending on whether =ido-grid-mode-order= is =nil= for rows or =t= for columns. I prefer columns, which is similar to what zsh does.
 
    No more than =ido-grid-mode-max-rows= rows should be produced. If the layout can be achieved with fewer rows, then fewer rows will appear, limited by =ido-grid-mode-min-rows=. By default these are the same, which keeps the minibuffer a constant height. If you want the minibuffer to grow and shrink appropriately reduce the min rows.
 
@@ -73,7 +73,7 @@
            ido-grid-mode-prefix-scrolls t
            ido-grid-mode-scroll-down #'ido-grid-mode-next-row
            ido-grid-mode-scroll-up #'ido-grid-mode-previous-row
-           ido-grid-mode-order 'rows
+           ido-grid-mode-order nil
            ido-grid-mode-start-collapsed t)
    #+END_SRC
 
