@@ -2,13 +2,16 @@
 
   This is an enhancement to ido mode which displays the ido prospects in a grid in the minibuffer. I find this makes them easier to read. It can also amend ido's key-bindings so that you can navigate around the grid, rather than scrolling all the completions. I find this also makes it easier to read.
 
-  Here are some pictures:
+  Here are a some examples of how it can work:
 
-  [[./pictures/1.png]]
-  [[./pictures/3.png]]
-  [[./pictures/4.png]]
+  In ido-find-file
+  [[./pictures/files-example.gif]]
 
-  In these you can see whats going on - the selected item is highlighted in orange, matching parts of items are underlined, and the top line contains a string like [x/y] (z not shown), meaning that there are x items matching your input from y total, and that z are not visible on the screen, but can be scrolled to if you move down enough.
+  In [[https://github.com/nonsequitur/smex][smex]]:
+  [[./pictures/smex-example.gif]]
+
+  Using [[https://github.com/larkery/ido-describe-prefix-bindings.el][ido-describe-prefix-bindings]] for =C-x=
+  [[./pictures/vertical-example.gif]]
 
 * Installation
 
@@ -66,14 +69,17 @@
 
    #+BEGIN_SRC elisp
      (setq ido-grid-mode-max-columns 1
-           ido-grid-mode-max-rows 10
+           ido-grid-mode-max-rows 8
            ido-grid-mode-prefix-scrolls t
            ido-grid-mode-scroll-down #'ido-grid-mode-next-row
            ido-grid-mode-scroll-up #'ido-grid-mode-previous-row
-           ido-grid-mode-order 'rows)
+           ido-grid-mode-order 'rows
+           ido-grid-mode-start-collapsed t)
    #+END_SRC
 
-   Will let you scroll up and down in a vertical list a row at a time when you hit the edges.
+   will start small, popup when you press tab, and let you scroll up and down in a vertical list a row at a time when you hit the edges:
+
+   [[./pictures/vertical-scroll.gif]]
 
 ** Keys
 
