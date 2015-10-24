@@ -88,10 +88,10 @@
   :type 'integer
   :group 'ido-grid-mode)
 
-(defcustom ido-grid-mode-order 'columns
+(defcustom ido-grid-mode-order t
   "The order to put things in the grid."
-  :type '(choice (const :tag "Row-wise (row 1, then row 2, ...)" rows)
-                 (const :tag "Column-wise (column 1, then column 2, ...)" columns))
+  :type '(choice (const :tag "Row-wise (row 1, then row 2, ...)" nil)
+                 (const :tag "Column-wise (column 1, then column 2, ...)" t))
   :group 'ido-grid-mode)
 
 (defcustom ido-grid-mode-jank-rows 1000
@@ -205,20 +205,20 @@ Previous row is only really sensible when `ido-grid-mode-order' is row-wise, and
 
 (defun ido-grid-mode-row-major ()
   "Is the grid row major?"
-  (eq 'rows ido-grid-mode-order))
+  (not ido-grid-mode-order))
 (defun ido-grid-mode-column-major ()
   "Is the grid column major?"
-  (not (ido-grid-mode-row-major)))
+  ido-grid-mode-order)
 
-(defvar ign-invocation-cache
-  (make-hash-table :test 'equal :weakness 'key))
+(defvar ido-grid-mode-lengths-cache
+  (make-hash-table :test 'equal :weakness t))
 
 (defun ido-grid-mode-mapcar (fn stuff)
   "Map FN over some STUFF, storing the result in a weak cache."
   (let* ((key (cons fn stuff))
-         (existing (gethash key ign-invocation-cache)))
+         (existing (gethash key ido-grid-mode-lengths-cache)))
     (or existing (puthash key (mapcar fn stuff)
-                          ign-invocation-cache))))
+                          ido-grid-mode-lengths-cache))))
 
 (defmacro ido-grid-mode-debug (_s)
   ;; `(with-current-buffer
@@ -228,30 +228,38 @@ Previous row is only really sensible when `ido-grid-mode-order' is row-wise, and
   ;;    (insert "\n"))
   )
 
-;; functions to compute how many columns to use
+;; Compute the number of columns to use. This consumes about half the runtime,
+;; and it could be a pure function
 
-(defun ido-grid-mode-columns (lengths max-width)
-  "Packing items of LENGTHS into MAX-WIDTH, what columns are needed?.
-The items will be placed into columns row-wise, so the first row
-will contain the first k items, and so on.  The result is a
-vector of column widths, or nil if even 1 column is too many.
-Refers to `ido-grid-mode-order' to decide whether to try and fill
-rows or columns."
-  (let* ((padding (length ido-grid-mode-padding))
+(defun ido-grid-mode-count-columns-pure
+    (lengths
+     max-width
+
+     ;; these are all defvars which are passed
+     ;; so this can be memoized
+     -padding
+     -jank-rows
+     -max-columns
+     -min-rows
+     -max-rows
+
+     -row-major)
+
+  (let* ((padding (length -padding))
          (lower 1)
          (item-count (length lengths))
-         (jank (> item-count ido-grid-mode-jank-rows))
+         (jank (> item-count -jank-rows))
          (upper (min
-                 (or ido-grid-mode-max-columns max-width)
-                 (if (ido-grid-mode-row-major)
+                 (or -max-columns max-width)
+                 (if -row-major
                      (1+ (/ max-width (apply #'min lengths)))
-                   (+ 2 (/ item-count ido-grid-mode-min-rows)))))
+                   (+ 2 (/ item-count -min-rows)))))
          lower-solution)
 
     (while (< lower upper)
       (let* ((middle (+ lower (/ (- upper lower) 2)))
-             (rows (max ido-grid-mode-min-rows
-                        (min ido-grid-mode-max-rows
+             (rows (max -min-rows
+                        (min -max-rows
                              (/ (+ (- middle 1) item-count) middle))))
 
              (spare-width (- max-width (* padding (- middle 1))))
@@ -259,19 +267,19 @@ rows or columns."
              (column 0)
              (row 0)
              (widths (make-vector middle 0)))
-        (ido-grid-mode-debug (format "try %dx%d %s" rows middle widths))
+
         ;; try and pack the items
         (let ((overflow
                (catch 'stop
                  (dolist (length lengths)
                    ;; if we have reached the jank point, stop
-                   (when (and (ido-grid-mode-row-major)
+                   (when (and -row-major
                               jank
-                              (>= row ido-grid-mode-max-rows))
-                     (ido-grid-mode-debug (format "looking too far vertically at %dx%d %s" row column widths))
+                              (>= row -max-rows))
+
                      (throw 'stop nil))
 
-                   (when (and (ido-grid-mode-column-major)
+                   (when (and (not -row-major)
                               (>= column middle))
                      (throw 'stop nil))
 
@@ -279,12 +287,11 @@ rows or columns."
 
                    (let ((w (aref widths column)))
                      (when (> length w)
-                       (ido-grid-mode-debug (format "%dx%d expands %d to %d" row column w length))
                        (cl-incf total-width (- length w))
                        (aset widths column length)))
 
                    ;; bump counters
-                   (if (ido-grid-mode-row-major)
+                   (if -row-major
                        (progn (setq column (% (1+ column) middle))
                               (when (zerop column) (cl-incf row)))
                      (progn (setq row (% (1+ row) rows))
@@ -292,7 +299,6 @@ rows or columns."
 
                    ;; die if overflow
                    (when (> total-width spare-width)
-                     (ido-grid-mode-debug "doesn't fit horizontally")
                      (throw 'stop t))))))
 
           ;; move bound in search
@@ -303,13 +309,32 @@ rows or columns."
                    (if (= (1+ lower) upper)
                        (setq upper lower))))
           )))
-    (ido-grid-mode-debug (format "input:%s %d, solution: %s"
-                                 lengths
-                                 max-width
-                                 lower-solution))
-
     (cl-remove-if #'zerop lower-solution)
     ))
+
+(defvar ido-grid-mode-count-columns-cache
+  (make-hash-table :test 'equal :weakness 'key))
+
+(defun ido-grid-mode-count-columns (lengths max-width)
+  "Packing items of LENGTHS into MAX-WIDTH, what columns are needed?.
+The items will be placed into columns row-wise, so the first row
+will contain the first k items, and so on.  The result is a
+vector of column widths, or nil if even 1 column is too many.
+Refers to `ido-grid-mode-order' to decide whether to try and fill
+rows or columns."
+  (let* ((args (list lengths
+                     max-width
+
+                     ido-grid-mode-padding
+                     ido-grid-mode-jank-rows
+                     ido-grid-mode-max-columns
+                     ido-grid-mode-min-rows
+                     ido-grid-mode-max-rows
+                     (ido-grid-mode-row-major)))
+         (result (gethash args ido-grid-mode-count-columns-cache)))
+    (or result
+        (puthash args (apply #'ido-grid-mode-count-columns-pure args)
+                 ido-grid-mode-count-columns-cache))))
 
 ;; functions to layout text in a grid of known dimensions.
 
@@ -352,7 +377,7 @@ Modifies `ido-grid-mode-rows', `ido-grid-mode-columns', `ido-grid-mode-count' an
          (names (ido-grid-mode-mapcar name items))
          (lengths (ido-grid-mode-mapcar #'ido-grid-mode-string-width names))
          (padded-width (- max-width (length row-padding)))
-         (col-widths (or (ido-grid-mode-columns lengths padded-width)
+         (col-widths (or (ido-grid-mode-count-columns lengths padded-width)
                          (make-vector 1 padded-width)))
          (col-count (length col-widths))
          (row-count (max ido-grid-mode-min-rows
@@ -830,6 +855,11 @@ It may not be possible to do this unless there is only 1 column."
 
 (defun ido-grid-mode-enable ()
   "Turn on ido-grid-mode."
+  (setq ido-grid-mode-order
+        (cl-case ido-grid-mode-order
+          (rows nil)
+          (columns t)
+          (t ido-grid-mode-order)))
   (setq ido-grid-mode-old-completions (symbol-function 'ido-completions))
   (setq ido-grid-mode-old-cannot-complete-command ido-cannot-complete-command)
   (fset 'ido-completions #'ido-grid-mode-completions)
