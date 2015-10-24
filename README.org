@@ -26,6 +26,8 @@
 
    If you want the minibuffer to typically be small, but display a large grid on demand, you can use =ido-grid-mode-start-collapsed=. This will limit it to a single row until you press =<tab>=, so long as there are things which would be offscreen. I find this a good setting, as it means that things don't move around on the screen until you want them to.
 
+   The little arrow =->= displayed on the left is customisable with =ido-grid-mode-prefix=, and you can make it follow the highlighted item with =ido-grid-mode-prefix-scrolls=.
+
 *** Making a vertical list sometimes
 
     If you want a particular bit of code to use a vertical list (or some other known layout) you can =let= the appropriate variables around it.
@@ -53,6 +55,26 @@
       (advice-add 'projectile-find-file :around #'ido-vertical-please)
     #+END_SRC
 
+** Scrolling
+
+   By default, the arrow keys and tab/backtab will move around in the grid. You have some choices about what happens when you reach the edges of the grid, if there are too many things to display:
+
+   - =ido-grid-mode-scroll-wrap= sets what happens when you move the cursor out-of-bounds. If it is =t=, the cursor will always wrap except at the top left and bottom right corners. If it is =nil=, the cursor will wrap only in the non-major dimension; what this means is that if you have =ido-grid-mode-order= set column-first, going out of bounds vertically will wrap, but horizontally will scroll. If =ido-grid-mode-order= is rows-first, the reverse is true
+   - =ido-grid-mode-scroll-up= and =ido-grid-mode-scroll-down= control what happens when the cursor is moved out of bounds and is not wrapped. You can use =ido-grid-mode-<next/previous>-page= to move as many items are displayed, so the whole page of items changes, or you can use =ido-grid-mode-<next/previous>-row= which is slightly confusingly named but scrolls one row if the layout is row-wise or one column if it is column-wise.
+
+   You can use these in combination to get different behaviours, for example:
+
+   #+BEGIN_SRC elisp
+     (setq ido-grid-mode-max-columns 1
+           ido-grid-mode-max-rows 10
+           ido-grid-mode-prefix-scrolls t
+           ido-grid-mode-scroll-down #'ido-grid-mode-next-row
+           ido-grid-mode-scroll-up #'ido-grid-mode-previous-row
+           ido-grid-mode-order 'rows)
+   #+END_SRC
+
+   Will let you scroll up and down in a vertical list a row at a time when you hit the edges.
+
 ** Keys
 
    By default, =ido-grid-mode= will mangle your key-bindings for =<up>=, =<down>=, =<left>=, =<right>=, =<tab>=, =<backtab>=, =C-n= and =C-p= when in the minibuffer. These are bound to move around the grid and page up / down when there are many items. You can change this by customizing =ido-grid-mode-keys=; set it to =nil= to leave the keys alone. The movement commands are =igm-<up,down,left,right>=, =igm-previous=, =igm-next=, =igm-previous-page=, and =igm-next-page=.
@@ -72,6 +94,13 @@
 
    The top line shows some information after point; this is configurable with =ido-grid-mode-first-line=.
 
+* Things to do
+** TODO Improve row/column specific code
+   There are two code paths for different layouts in a lot of places, which is lame and might be fixable
+** TODO Improve scrolling
+   At the moment scrolling the grid a row at a time sometimes makes the cursor jump around when the dimensions of the next layout are different. Similarly, you can scroll right 1 column and just reduce the number of columns if the 'next' column wouldn't fit.
+** TODO Efficiency improvements
+   It works OK on my laptop, but it is irksome that the grid is created so frequently. Most of the time it should be possible to reuse the string and just move the faces around.
 * See also
 
   - [[https://github.com/creichert/ido-vertical-mode.el][ido-vertical-mode.el]], which this was based on. I rewrote it when it looked like I was starting to break existing behaviour too much.
