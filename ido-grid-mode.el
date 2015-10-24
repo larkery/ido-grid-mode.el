@@ -762,7 +762,9 @@ It may not be possible to do this unless there is only 1 column."
 (defun ido-grid-mode-rotate-n (n matches items)
   "Because ido's prospects are produced by filtering MATCHES to ITEMS,
 normal -rotate can't be used; we have to modify the ITEMS so that MATCHES
-appears rotated."
+appears rotated.
+
+This appears to break smex quite badly."
 
   ;; example (matches are uppercase)
   ;; (A B c d e F G H i j) + 2
@@ -784,7 +786,8 @@ appears rotated."
   ;; F G H X Y Z A B
   ;; is this essentially the same operation?
 
-  (let* ((match-count (length matches))
+  (let* ((items (copy-sequence items))
+         (match-count (length matches))
          (n (if (< n 0) (+ match-count n) n))
          (new-head (nth n matches))
          (walker items)
