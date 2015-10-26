@@ -802,7 +802,7 @@ This appears to break smex quite badly."
          new-tail)
 
     (while walker
-      (if (eq new-head (cadr walker))
+      (if (equal new-head (cadr walker))
           (setq new-tail walker
                 walker nil)
         (setq walker (cdr walker))))
