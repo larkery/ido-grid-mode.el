@@ -63,7 +63,7 @@
 (defvar ido-directory-too-big)
 
 (defvar ido-report-no-match t
-  "Report [No Match] when no completions matches ido-text.")
+  "Report [No Match] when no completions matches `ido-text'.")
 
 (defvar ido-matches nil
   "List of files currently matching `ido-text'.")
@@ -198,7 +198,7 @@ Previous row is only really sensible when `ido-grid-mode-order' is row-wise, and
 
 (defcustom ido-grid-mode-scroll-wrap t
   "Whether to scroll the grid when hitting an edge, or to wrap
-  around. Scrolling always happens at the top left or bottom right."
+around. Scrolling always happens at the top left or bottom right."
   :type 'boolean
   :group 'ido-grid-mode)
 
@@ -847,7 +847,7 @@ This appears to break smex quite badly."
     (apply o args)))
 
 (defun ido-grid-mode-advise-match-permanent (o &rest args)
-  "Advice for things which use `ido-matches' permanently"
+  "Advice for things which use `ido-matches' permanently."
   (dotimes (_n ido-grid-mode-offset) (ido-next-match))
   (setq ido-grid-mode-offset 0)
   (setq max-mini-window-height (or ido-grid-mode-old-max-mini-window-height max-mini-window-height)
@@ -900,7 +900,7 @@ This appears to break smex quite badly."
 (defvar ido-grid-mode-old-cannot-complete-command nil)
 
 (defun ido-grid-mode-enable ()
-  "Turn on ido-grid-mode."
+  "Turn on function `ido-grid-mode'."
   (setq ido-grid-mode-order
         (cl-case ido-grid-mode-order
           (rows nil)
@@ -913,7 +913,7 @@ This appears to break smex quite badly."
   (ido-grid-mode-advise-functions))
 
 (defun ido-grid-mode-disable ()
-  "Turn off ido-grid-mode."
+  "Turn off function `ido-grid-mode'."
   (fset 'ido-completions ido-grid-mode-old-completions)
   (setq ido-cannot-complete-command ido-grid-mode-old-cannot-complete-command)
   (remove-hook 'ido-setup-hook #'ido-grid-mode-ido-setup)
