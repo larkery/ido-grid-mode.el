@@ -810,13 +810,14 @@ It may not be possible to do this unless there is only 1 column."
 
 (defun ido-grid-mode-advise-match-temporary (o &rest args)
   "Advice for things which use `ido-matches' temporarily."
-  (let ((ido-matches (nthcdr ido-grid-mode-offset ido-matches))
+  (let ((ido-matches (nthcdr ido-grid-mode-offset ido-grid-mode-rotated-matches))
         (ido-grid-mode-offset 0))
     (apply o args)))
 
 (defun ido-grid-mode-advise-match-permanent (o &rest args)
   "Advice for things which use `ido-matches' permanently."
-  (dotimes (_n ido-grid-mode-offset) (ido-next-match))
+  (ido-grid-mode-rotate-matches-to (nth ido-grid-mode-offset ido-grid-mode-rotated-matches))
+  (setq ido-matches ido-grid-mode-rotated-matches)
   (setq ido-grid-mode-offset 0)
   (setq max-mini-window-height (or ido-grid-mode-old-max-mini-window-height max-mini-window-height)
         resize-mini-windows (or (unless (equal ido-grid-mode-old-resize-mini-windows 'unknown)
