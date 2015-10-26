@@ -83,7 +83,8 @@
 
 (defcustom ido-grid-mode-max-columns nil
   "The maximum number of columns - nil means no maximum."
-  :type '(choice 'integer (const :tag "Unlimited" nil))
+  :type '(choice (const :tag "Unlimited" nil)
+                 (integer :tag "Custom value"))
   :group 'ido-grid-mode)
 
 (defcustom ido-grid-mode-max-rows 5
