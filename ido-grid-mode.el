@@ -773,7 +773,12 @@ It may not be possible to do this unless there is only 1 column."
                             ido-grid-mode-columns
                           ido-grid-mode-rows)))
 
+(defvar ido-grid-mode-safe-to-rotate-matches nil)
+
 (defun ido-grid-mode-rotate-matches-to (new-head)
+  (unless ido-grid-mode-safe-to-rotate-matches
+    (setq ido-grid-mode-rotated-matches (copy-sequence ido-grid-mode-rotated-matches)))
+
   (let ((new-tail ido-grid-mode-rotated-matches))
     (while new-tail
       (setq new-tail
@@ -787,12 +792,24 @@ It may not be possible to do this unless there is only 1 column."
                   nil)
               (cdr new-tail))))))
 
+;; this is not quite right, because rotated matches is not cleared on ESC
+;; however it seems to work OK
 (defun ido-grid-mode-set-matches (o &rest rest)
-  (let* ((match-head (car ido-grid-mode-rotated-matches))
-         (new-matches (apply o rest)))
+  (let* ((match-head (nth ido-grid-mode-offset
+                          ido-grid-mode-rotated-matches))
+         (new-matches   (apply o rest))
+         (head-position (cl-position  match-head new-matches :test #'equal))
+         (target (nth
+                  (% (- (or head-position 0) ido-grid-mode-offset)
+                     (length new-matches))
+                  new-matches)))
 
-    (setq ido-grid-mode-rotated-matches (copy-sequence new-matches))
-    (ido-grid-mode-rotate-matches-to match-head)
+    (setq ido-grid-mode-rotated-matches new-matches
+          ido-grid-mode-safe-to-rotate-matches nil)
+
+    (when (and match-head head-position
+               (not (equal target (car ido-grid-mode-rotated-matches))))
+      (ido-grid-mode-rotate-matches-to target))
 
     new-matches))
 
@@ -819,6 +836,7 @@ It may not be possible to do this unless there is only 1 column."
   (ido-grid-mode-rotate-matches-to (nth ido-grid-mode-offset ido-grid-mode-rotated-matches))
   (setq ido-matches ido-grid-mode-rotated-matches)
   (setq ido-grid-mode-offset 0)
+  (setq ido-grid-mode-rotated-matches nil)
   (setq max-mini-window-height (or ido-grid-mode-old-max-mini-window-height max-mini-window-height)
         resize-mini-windows (or (unless (equal ido-grid-mode-old-resize-mini-windows 'unknown)
                                   ido-grid-mode-old-resize-mini-windows)
@@ -880,8 +898,9 @@ It may not be possible to do this unless there is only 1 column."
   (fset 'ido-completions #'ido-grid-mode-completions)
   (add-hook 'ido-setup-hook #'ido-grid-mode-ido-setup)
   (ido-grid-mode-advise-functions)
-  (advice-add 'ido-set-matches-1 :around #'ido-grid-mode-set-matches))
-
+  (advice-add 'ido-set-matches-1
+              :around #'ido-grid-mode-set-matches
+              :depth -50))
 
 (defun ido-grid-mode-disable ()
   "Turn off function `ido-grid-mode'."
