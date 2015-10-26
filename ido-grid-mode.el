@@ -795,23 +795,27 @@ This appears to break smex quite badly."
   ;; F G H X Y Z A B
   ;; is this essentially the same operation?
 
-  (let* ((items (copy-sequence items))
-         (match-count (length matches))
-         (n (if (< n 0) (+ match-count n) n))
-         (new-head (nth n matches))
-         (walker items)
-         new-tail)
+  (or
+   (when matches
+     (let* ((items (copy-sequence items))
+            (match-count (length matches))
+            (n (% (if (< n 0) (+ match-count n) n) match-count))
+            (new-head (nth n matches))
+            (walker items)
+            new-tail)
 
-    (while walker
-      (if (equal new-head (cadr walker))
-          (setq new-tail walker
-                walker nil)
-        (setq walker (cdr walker))))
+       (while walker
+         (if (equal new-head (cadr walker))
+             (setq new-tail walker
+                   walker   nil)
+           (setq walker (cdr walker))))
 
-    ;; splitting point's cdr is the cell whose car is new-head
-    (setq new-head (cdr new-tail)) ;; find new head
-    (setcdr new-tail nil) ;; break the tie
-    (nconc new-head items)))
+       (when new-tail
+         ;; splitting point's cdr is the cell whose car is new-head
+         (setq new-head (cdr new-tail)) ;; find new head
+         (setcdr new-tail nil) ;; break the tie
+         (nconc new-head items))))
+   items))
 
 (defun ido-grid-mode-next-N (n)
   "Page N items off the top."
