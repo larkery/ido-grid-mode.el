@@ -24,17 +24,25 @@
 
 ;;; Commentary:
 
-;; Makes ido-mode display prospects in a grid. The mechanism is based
-;; on ido-vertical-mode, but it is sufficiently different that I
-;; reimplemented it. The purpose is to look a bit like zsh style
-;; completion lists.  Most of the behaviour can be customized, in the
-;; ido-grid-mode group.  relevant variables are
-;; `ido-grid-mode-min-rows', `ido-grid-mode-max-rows',
-;; `ido-grid-mode-keys', `ido-grid-mode-start-collapsed'.  If you want
-;; ido-grid-mode to sometimes be more horizontal or more vertical, you
-;; can let `ido-grid-mode-max-rows' or `ido-grid-mode-max-columns'
-;; around the call you are interested in (or in advice around an
-;; existing command).
+;; Display your ido prospects in a grid, e.g (artist's ascii
+;; impression, see URL for some pictures):
+;;
+;; Find file:~/
+;; -> *this*      and-some       the
+;;    that        more-things    end
+;;    the-other   here
+;;
+;; The grid works a bit like the zsh completion grid; you can move
+;; around it with the arrow keys or tab/backtab, and it scrolls when
+;; you get to an edge if not everything will fit.
+;;
+;; Mostly customizable with (customize-group "ido-grid-mode"). You can
+;; change the keys bound, grid max/min dimensions, layout order (rows
+;; vs columns), and whether to appear immediately or after <tab>.
+;;
+;; Some examples of ways it can be used are at the github URL; it is
+;; easy to use advices to get different invocations for ido to display
+;; differently on the screen.
 
 ;;; Code:
 
