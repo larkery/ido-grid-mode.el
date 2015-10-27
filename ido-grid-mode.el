@@ -815,22 +815,8 @@ It may not be possible to do this unless there is only 1 column."
                                   ido-matches
                                   ido-grid-mode-rotated-matches))))
 
-    (when did-something
-      (let* ((match-head (nth ido-grid-mode-offset
-                              ido-grid-mode-rotated-matches))
-             (head-position (cl-position  match-head ido-matches :test #'equal))
-             (target (nth
-                      (% (- (or head-position 0) ido-grid-mode-offset)
-                         (max 1 (length ido-matches)))
-                      ido-matches)))
-
-        ;; at the moment we always have to do the copy, because otherwise
-        ;; we mangle a shared list under certain circumstances.
-        (setq ido-grid-mode-rotated-matches (copy-sequence ido-matches))
-
-        (when (and just-rotated match-head head-position
-                   (not (equal target (car ido-grid-mode-rotated-matches))))
-          (ido-grid-mode-rotate-matches-to target))))
+    (when (and did-something (not just-rotated))
+      (setq ido-grid-mode-rotated-matches (copy-sequence ido-matches)))
     result))
 
 (defun ido-grid-mode-next-N (n)
