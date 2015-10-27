@@ -801,7 +801,7 @@ It may not be possible to do this unless there is only 1 column."
          (head-position (cl-position  match-head new-matches :test #'equal))
          (target (nth
                   (% (- (or head-position 0) ido-grid-mode-offset)
-                     (length new-matches))
+                     (max 1 (length new-matches)))
                   new-matches)))
 
     (setq ido-grid-mode-rotated-matches new-matches
