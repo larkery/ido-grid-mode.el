@@ -558,7 +558,7 @@ groups, add the face to all of S."
 
 (defun ido-grid-mode-grid (name)
   "Draw the grid for input NAME."
-  (let* ((decoration-regexp (if ido-enable-regexp name (regexp-quote name)))
+  (let* ((decoration-regexp (if ido-enable-regexp ido-text (regexp-quote name)))
          (max-width (- (window-body-width (minibuffer-window)) 1))
          (decorator (lambda (name item _row _column offset)
                       (concat
