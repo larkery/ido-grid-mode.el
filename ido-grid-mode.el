@@ -395,7 +395,7 @@ Modifies `ido-grid-mode-rows', `ido-grid-mode-columns', `ido-grid-mode-count' an
          (col-count (length col-widths))
          (row-count (max ido-grid-mode-min-rows
                          (min ido-grid-mode-max-rows
-                              (/ (+ (length names) (- col-count 1)) col-count))))
+                              (/ (+ (length names) (- col-count 1)) (max 1 col-count)))))
          (grid-size (* row-count col-count))
          (col 0)
          (row 0)
@@ -416,8 +416,8 @@ Modifies `ido-grid-mode-rows', `ido-grid-mode-columns', `ido-grid-mode-count' an
     (setq ido-grid-mode-offset (max 0 (min ido-grid-mode-offset (- ido-grid-mode-count 1))))
     (setq indicator-row (if ido-grid-mode-prefix-scrolls
                             (if (ido-grid-mode-row-major)
-                                (/ ido-grid-mode-offset col-count)
-                              (% ido-grid-mode-offset row-count))
+                                (/ ido-grid-mode-offset (max 1 col-count))
+                              (% ido-grid-mode-offset (max 1 row-count)))
                           0))
 
     (if (ido-grid-mode-row-major)
@@ -796,21 +796,9 @@ It may not be possible to do this unless there is only 1 column."
 ;; however it seems to work OK
 (defun ido-grid-mode-set-matches (o &rest rest)
   (let ((result (apply o rest)))
-    (let* ((match-head (nth ido-grid-mode-offset
-                            ido-grid-mode-rotated-matches))
-           (new-matches ido-matches) ;;todo maybe a bit inefficient
-           (head-position (cl-position  match-head new-matches :test #'equal))
-           (target (nth
-                    (% (- (or head-position 0) ido-grid-mode-offset)
-                       (max 1 (length new-matches)))
-                    new-matches)))
-
-      (setq ido-grid-mode-rotated-matches (copy-sequence new-matches)
-            ido-grid-mode-safe-to-rotate-matches t)
-
-      (when (and match-head head-position
-                 (not (equal target (car ido-grid-mode-rotated-matches))))
-        (ido-grid-mode-rotate-matches-to target)))
+    ;; this is inefficient, as ido-matches may not need copying.
+    (setq ido-grid-mode-rotated-matches (copy-sequence ido-matches)
+          ido-grid-mode-safe-to-rotate-matches t)
     result))
 
 (defun ido-grid-mode-next-N (n)
