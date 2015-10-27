@@ -795,23 +795,23 @@ It may not be possible to do this unless there is only 1 column."
 ;; this is not quite right, because rotated matches is not cleared on ESC
 ;; however it seems to work OK
 (defun ido-grid-mode-set-matches (o &rest rest)
-  (let* ((match-head (nth ido-grid-mode-offset
-                          ido-grid-mode-rotated-matches))
-         (new-matches   (apply o rest))
-         (head-position (cl-position  match-head new-matches :test #'equal))
-         (target (nth
-                  (% (- (or head-position 0) ido-grid-mode-offset)
-                     (max 1 (length new-matches)))
-                  new-matches)))
+  (let ((result (apply o rest)))
+    (let* ((match-head (nth ido-grid-mode-offset
+                            ido-grid-mode-rotated-matches))
+           (new-matches ido-matches) ;;todo maybe a bit inefficient
+           (head-position (cl-position  match-head new-matches :test #'equal))
+           (target (nth
+                    (% (- (or head-position 0) ido-grid-mode-offset)
+                       (max 1 (length new-matches)))
+                    new-matches)))
 
-    (setq ido-grid-mode-rotated-matches new-matches
-          ido-grid-mode-safe-to-rotate-matches nil)
+      (setq ido-grid-mode-rotated-matches (copy-sequence new-matches)
+            ido-grid-mode-safe-to-rotate-matches t)
 
-    (when (and match-head head-position
-               (not (equal target (car ido-grid-mode-rotated-matches))))
-      (ido-grid-mode-rotate-matches-to target))
-
-    new-matches))
+      (when (and match-head head-position
+                 (not (equal target (car ido-grid-mode-rotated-matches))))
+        (ido-grid-mode-rotate-matches-to target)))
+    result))
 
 (defun ido-grid-mode-next-N (n)
   "Page N items off the top."
@@ -898,7 +898,7 @@ It may not be possible to do this unless there is only 1 column."
   (fset 'ido-completions #'ido-grid-mode-completions)
   (add-hook 'ido-setup-hook #'ido-grid-mode-ido-setup)
   (ido-grid-mode-advise-functions)
-  (advice-add 'ido-set-matches-1
+  (advice-add 'ido-set-matches
               :around #'ido-grid-mode-set-matches
               '(:depth -50)))
 
@@ -908,7 +908,7 @@ It may not be possible to do this unless there is only 1 column."
   (setq ido-cannot-complete-command ido-grid-mode-old-cannot-complete-command)
   (remove-hook 'ido-setup-hook #'ido-grid-mode-ido-setup)
   (ido-grid-mode-unadvise-functions)
-  (advice-remove 'ido-set-matches-1 #'ido-grid-mode-set-matches))
+  (advice-remove 'ido-set-matches #'ido-grid-mode-set-matches))
 
 ;;;###autoload
 (define-minor-mode ido-grid-mode
