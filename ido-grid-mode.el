@@ -773,12 +773,7 @@ It may not be possible to do this unless there is only 1 column."
                             ido-grid-mode-columns
                           ido-grid-mode-rows)))
 
-(defvar ido-grid-mode-safe-to-rotate-matches nil)
-
 (defun ido-grid-mode-rotate-matches-to (new-head)
-  (unless ido-grid-mode-safe-to-rotate-matches
-    (setq ido-grid-mode-rotated-matches (copy-sequence ido-grid-mode-rotated-matches)))
-
   (let ((new-tail ido-grid-mode-rotated-matches))
     (while new-tail
       (setq new-tail
@@ -792,13 +787,50 @@ It may not be possible to do this unless there is only 1 column."
                   nil)
               (cdr new-tail))))))
 
-;; this is not quite right, because rotated matches is not cleared on ESC
+(defun ido-grid-mode-equal-but-rotated (x y)
+  (when (equal (length x) (length y))
+    (let ((a (car x))
+          (y2 y))
+      ;; find where y2 overlaps x
+      (while (and y2
+                  (not (equal a
+                              (car y2))))
+        (setq y2 (cdr y2)))
+      (when y2 ;; if nil, a is not in y
+        (while (and x
+                    (equal (car x)
+                           (car y2)))
+          (setq x (cdr x)
+                y2 (or (cdr y2) y)))
+
+        (not x)))))
+
+;; this is not quite right, because rotated matches is not cleared on exit.
 ;; however it seems to work OK
 (defun ido-grid-mode-set-matches (o &rest rest)
-  (let ((result (apply o rest)))
-    ;; this is inefficient, as ido-matches may not need copying.
-    (setq ido-grid-mode-rotated-matches (copy-sequence ido-matches)
-          ido-grid-mode-safe-to-rotate-matches t)
+  (let* ((did-something ido-rescan)
+         (result (apply o rest))
+         (just-rotated (and did-something
+                            (ido-grid-mode-equal-but-rotated
+                                  ido-matches
+                                  ido-grid-mode-rotated-matches))))
+
+    (when did-something
+      (let* ((match-head (nth ido-grid-mode-offset
+                              ido-grid-mode-rotated-matches))
+             (head-position (cl-position  match-head ido-matches :test #'equal))
+             (target (nth
+                      (% (- (or head-position 0) ido-grid-mode-offset)
+                         (max 1 (length ido-matches)))
+                      ido-matches)))
+
+        ;; at the moment we always have to do the copy, because otherwise
+        ;; we mangle a shared list under certain circumstances.
+        (setq ido-grid-mode-rotated-matches (copy-sequence ido-matches))
+
+        (when (and just-rotated match-head head-position
+                   (not (equal target (car ido-grid-mode-rotated-matches))))
+          (ido-grid-mode-rotate-matches-to target))))
     result))
 
 (defun ido-grid-mode-next-N (n)
