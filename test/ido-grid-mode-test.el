@@ -111,3 +111,31 @@
   (let ((ido-grid-mode-order t))
     (should (and (not (ido-grid-mode-row-major))
                  (ido-grid-mode-column-major)))))
+
+(ert-deftest ido-grid-rotation ()
+  "Check rotated matches are in right condition"
+  (let ((ido-grid-mode-rotated-matches nil)
+        (ido-matches '(A B C D E F G))
+        (ido-rescan t))
+    (ido-grid-mode-set-matches (lambda ()))
+    ;; after a normal set-matches matches should be copied,
+    ;; in original order
+    (should (equal ido-matches ido-grid-mode-rotated-matches))
+    (should-not (eq ido-matches ido-grid-mode-rotated-matches))
+    ;; rotating should work properly:
+    (ido-grid-mode-rotate-matches-to 'C)
+    (should (equal '(C D E F G A B)
+                   ido-grid-mode-rotated-matches))
+    ;; if we have done a rotation, and then set-matches is called
+    ;; with the un-rotated version otherwise the same, the rotation
+    ;; is preserved
+    (ido-grid-mode-set-matches (lambda ()))
+    (should (equal '(C D E F G A B)
+                   ido-grid-mode-rotated-matches))
+    ;; if the matches change, then any rotation is reset
+    (let ((ido-matches '(A B C D E F)))
+      (ido-grid-mode-set-matches (lambda ()))
+      (should (equal '(A B C D E F)
+                     ido-grid-mode-rotated-matches)))))
+
+;; todo: ecukes?
