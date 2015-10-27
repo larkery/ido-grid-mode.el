@@ -809,13 +809,11 @@ It may not be possible to do this unless there is only 1 column."
 ;; however it seems to work OK
 (defun ido-grid-mode-set-matches (o &rest rest)
   (let* ((did-something ido-rescan)
-         (result (apply o rest))
-         (just-rotated (and did-something
-                            (ido-grid-mode-equal-but-rotated
-                                  ido-matches
-                                  ido-grid-mode-rotated-matches))))
+         (result (apply o rest)))
 
-    (when (and did-something (not just-rotated))
+    (when (and did-something (not (ido-grid-mode-equal-but-rotated
+                                   ido-matches
+                                   ido-grid-mode-rotated-matches)))
       (setq ido-grid-mode-rotated-matches (copy-sequence ido-matches)))
     result))
 
