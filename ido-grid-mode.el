@@ -900,7 +900,7 @@ It may not be possible to do this unless there is only 1 column."
   (ido-grid-mode-advise-functions)
   (advice-add 'ido-set-matches-1
               :around #'ido-grid-mode-set-matches
-              :depth -50))
+              '(:depth -50)))
 
 (defun ido-grid-mode-disable ()
   "Turn off function `ido-grid-mode'."
