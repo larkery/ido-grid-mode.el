@@ -25,16 +25,16 @@
       (min-rows 1))
      (should (equal
               '[10]
-              (ido-grid-mode-columns '(10 10) 19)))
+              (ido-grid-mode-count-columns '(10 10) 19)))
      (should (equal
               '[10 10]
-              (ido-grid-mode-columns '(10 10) 20)))
+              (ido-grid-mode-count-columns '(10 10) 20)))
      (should (equal
               '[10 10]
-              (ido-grid-mode-columns '(10 10) 21)))))
+              (ido-grid-mode-count-columns '(10 10) 21)))))
 
 (ert-deftest ido-grid-columns-2 ()
-  "Check that `ido-grid-mode-columns' works OK."
+  "Check that `ido-grid-mode-count-columns' works OK."
   (ido-grid-let
    ((padding "")
     (jank-rows 0)
@@ -44,24 +44,24 @@
 
    (should (equal
             '[11]
-            (ido-grid-mode-columns '(10 11) 20)))
+            (ido-grid-mode-count-columns '(10 11) 20)))
 
    (should (equal
             '[10 10]
-            (ido-grid-mode-columns '(10 10) 20)))
+            (ido-grid-mode-count-columns '(10 10) 20)))
 
    (should (equal
             '[10 10]
-            (ido-grid-mode-columns '(10 10 10 10 10 10 10) 21)))
+            (ido-grid-mode-count-columns '(10 10 10 10 10 10 10) 21)))
    (should (equal
             '[10]
-            (ido-grid-mode-columns (list 10 10
+            (ido-grid-mode-count-columns (list 10 10
                                          10 10
                                          10 10
                                          20) 21)))
    (should (equal
             '[10 10]
-            (ido-grid-mode-columns (list 10 10
+            (ido-grid-mode-count-columns (list 10 10
                                          10 10
                                          10 10
                                          10 10
@@ -75,7 +75,7 @@
     (max-columns nil)
     (padding "|")
     (prefix "")
-    (order 'columns))
+    (order t))
    (should
     (equal
      '("hello|a   \nworld|test\nthis \nis   " 4 2)
@@ -93,7 +93,7 @@
     (max-columns nil)
     (padding "|")
     (prefix "")
-    (order 'rows))
+    (order nil))
    (should
     (equal
      '("hello|world|this|is\na    |test " 4 4)
@@ -105,9 +105,9 @@
 
 (ert-deftest ido-grid-misc ()
   "Check misc ido-grid functions"
-  (let ((ido-grid-mode-order 'rows))
+  (let ((ido-grid-mode-order nil))
     (should (and (not (ido-grid-mode-column-major))
                  (ido-grid-mode-row-major))))
-  (let ((ido-grid-mode-order 'columns))
+  (let ((ido-grid-mode-order t))
     (should (and (not (ido-grid-mode-row-major))
                  (ido-grid-mode-column-major)))))
