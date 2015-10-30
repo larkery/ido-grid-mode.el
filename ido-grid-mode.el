@@ -210,6 +210,25 @@ around. Scrolling always happens at the top left or bottom right."
 (defvar ido-grid-mode-offset 0)
 (defvar ido-grid-mode-common-match nil)
 
+;; debugging
+
+(defvar ido-grid-mode-debug-enabled nil)
+(defun ido-grid-mode-debug (fs &rest args)
+  (when ido-grid-mode-debug-enabled
+    (with-current-buffer (get-buffer-create "*ido-grid-mode-debug*")
+      (goto-char (point-max))
+      (insert (apply #'format (cons
+                               (concat
+                                "%d %d %d %d %s %s :: "
+                                fs)
+                               (append (list ido-grid-mode-rows
+                                             ido-grid-mode-columns
+                                             ido-grid-mode-offset
+                                             (length ido-grid-mode-rotated-matches)
+                                             (car ido-matches)
+                                             (car ido-grid-mode-rotated-matches))
+                                       args))) "\n"))))
+
 ;; offset into the match list. need to reset this when match list is
 ;; changed.
 (defvar ido-grid-mode-rotated-matches nil)
@@ -352,7 +371,7 @@ rows or columns."
 
 (defun ido-grid-mode-copy-name (item)
   "Copy the `ido-name' of ITEM into a new string."
-  (substring (ido-name item) 0))
+  (substring (ido-grid-mode-name item) 0))
 
 (defun ido-grid-mode-string-width (s)
   "The displayed width of S in the minibuffer, excluding invisible text."
@@ -548,6 +567,13 @@ groups, add the face to all of S."
         mi)
     ""))
 
+(defun ido-grid-mode-name (item)
+  "Get the name, or something else if it is nil"
+  (let ((name (ido-name item)))
+    (cond ((not name) "<nil>")
+          ((zerop (length name)) "<empty>")
+          (t name))))
+
 (defun ido-grid-mode-grid (name)
   "Draw the grid for input NAME."
   (let* ((decoration-regexp (if ido-enable-regexp ido-text (regexp-quote name)))
@@ -569,7 +595,7 @@ groups, add the face to all of S."
                       ))
          (generated-grid (ido-grid-mode-gen-grid
                           ido-matches
-                          :name #'ido-name
+                          :name #'ido-grid-mode-name
                           :decorate decorator
                           :max-width max-width))
          (first-line (ido-grid-mode-gen-first-line)))
@@ -786,10 +812,13 @@ It may not be possible to do this unless there is only 1 column."
 (defun ido-grid-mode-set-matches (o &rest rest)
   (let* ((did-something ido-rescan)
          (result (apply o rest)))
+    (ido-grid-mode-debug "setting matches")
     (when (and did-something (not (ido-grid-mode-equal-but-rotated
                                    ido-matches
                                    ido-grid-mode-rotated-matches)))
+      (ido-grid-mode-debug "matches changed")
       (setq ido-grid-mode-rotated-matches (copy-sequence ido-matches)))
+
     result))
 
 (defun ido-grid-mode-next-N (n)
