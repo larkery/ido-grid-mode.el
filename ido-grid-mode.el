@@ -204,11 +204,21 @@ around. Scrolling always happens at the top left or bottom right."
   :group 'ido-grid-mode)
 
 ;; vars
-(defvar ido-grid-mode-rows 0)
-(defvar ido-grid-mode-columns 0)
-(defvar ido-grid-mode-count 0)
-(defvar ido-grid-mode-offset 0)
-(defvar ido-grid-mode-common-match nil)
+(defvar ido-grid-mode-rows 0
+  "The number of rows displayed last time the grid was presented.")
+(defvar ido-grid-mode-columns 0
+  "The number of columns displayed last time the grid was presented.")
+(defvar ido-grid-mode-count 0
+  "The number of items displayed last time the grid was presented.")
+(defvar ido-grid-mode-offset 0
+  "The offset into the displayed grid of the highlighted item.")
+(defvar ido-grid-mode-common-match nil
+  "The current common match prefix string, if there is one.")
+(defvar ido-grid-mode-rotated-matches nil
+  "A copy of `ido-matches' which has been rotated so that the
+  item in row/column 0,0 of the grid is the head of this list.
+  The selected item is the item at `ido-grid-mode-offset' in this
+  list.")
 
 ;; debugging
 
@@ -231,9 +241,11 @@ around. Scrolling always happens at the top left or bottom right."
 
 ;; offset into the match list. need to reset this when match list is
 ;; changed.
-(defvar ido-grid-mode-rotated-matches nil)
 
-(defvar ido-grid-mode-collapsed nil)
+(defvar ido-grid-mode-collapsed nil
+  "Whether the grid is currently collapsed; see
+  `ido-grid-mode-start-collapsed'. This is set to true in the
+  setup hook if that option is enabled.")
 
 (defun ido-grid-mode-row-major ()
   "Is the grid row major?"
@@ -790,6 +802,7 @@ It may not be possible to do this unless there is only 1 column."
               (cdr new-tail))))))
 
 (defun ido-grid-mode-equal-but-rotated (x y)
+  "is X element-wise `equal' to Y up to a rotation?"
   (when (equal (length x) (length y))
     (let ((a (car x))
           (y2 y))
@@ -810,6 +823,10 @@ It may not be possible to do this unless there is only 1 column."
 ;; this is not quite right, because rotated matches is not cleared on exit.
 ;; however it seems to work OK
 (defun ido-grid-mode-set-matches (o &rest rest)
+  "The advice for `ido-set-matches'. This is called whenever the
+match list changes, and will update
+`ido-grid-mode-rotated-matches' if the new `ido-matches' is
+different, ignoring rotations."
   (let* ((did-something ido-rescan)
          (result (apply o rest)))
     (ido-grid-mode-debug "setting matches")
