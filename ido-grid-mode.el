@@ -153,14 +153,24 @@ displays more detail about this."
   :group 'ido-grid-mode
   :type 'boolean)
 
-(defcustom ido-grid-mode-keys '(tab backtab up down left right C-n C-p)
+(defcustom ido-grid-mode-keys '(tab backtab up down left right C-n C-p C-s C-r)
   "Which keys to reconfigure in the minibuffer.
 
-Tab and backtab will move to the next/prev thing, arrow keys will
+C-n, C-p, Tab and backtab will move to the next/prev thing, arrow keys will
 move around in the grid, and C-n, C-p will scroll the grid in
 pages."
   :group 'ido-grid-mode
-  :type '(set (const tab) (const backtab) (const up) (const down) (const left) (const right) (const C-n) (const C-p)))
+  :type '(set (const tab)
+              (const backtab)
+              (const up)
+              (const down)
+              (const left)
+              (const right)
+              (const C-n)
+              (const C-p)
+              (const C-s)
+              (const C-r)
+              ))
 
 (defcustom ido-grid-mode-advise-perm '(ido-exit-minibuffer)
   "Functions which will want to see the right thing at the head of the ido list."
@@ -904,6 +914,8 @@ different, ignoring rotations."
       ('down    (define-key ido-completion-map (kbd "<down>")    #'ido-grid-mode-down))
       ('C-n     (define-key ido-completion-map (kbd "C-n")       #'ido-grid-mode-next-page))
       ('C-p     (define-key ido-completion-map (kbd "C-p")       #'ido-grid-mode-previous-page))
+      ('C-s     (define-key ido-completion-map (kbd "C-s")       #'ido-grid-mode-next))
+      ('C-r     (define-key ido-completion-map (kbd "C-r")       #'ido-grid-mode-previous))
       )))
 
 ;; this could be done with advice - is advice better?
