@@ -138,6 +138,11 @@ displays more detail about this."
   :type 'boolean
   :group 'ido-grid-mode)
 
+(defface ido-grid-mode-jump-face
+  '((t (:foreground "red")))
+  "The face for jump indicators, when turned on"
+  :group 'ido-grid-mode)
+
 (defface ido-grid-mode-match
   '((t (:underline t)))
   "The face used to mark up matching groups when showing a regular expression."
@@ -419,15 +424,17 @@ rows or columns."
       (string-width s))))
 
 (defun ido-grid-mode-padding-and-label (offset row col indicator-row row-padding)
-  (let ((result
-         (if (zerop col)
-             (if (= row indicator-row) ido-grid-mode-prefix row-padding)
-           ido-grid-mode-padding)))
+  (let* ((result
+          (if (zerop col)
+              (if (= row indicator-row) ido-grid-mode-prefix row-padding)
+            ido-grid-mode-padding))
+         (lr (length result)))
     (when (and (eq ido-grid-mode-jump 'label)
                (< 0 offset 11))
       (setq result (substring result 0))
-      (aset result (- (length result) 2) (+ ?0 (% offset 10)))
-      (add-face-text-property (- (length result) 2) (- (length result) 1) 'shadow nil result))
+      (aset result (- lr 2) (+ ?0 (% offset 10)))
+      (add-face-text-property (- lr 2) (- lr 1)
+                              'ido-grid-mode-jump-face nil result))
 
     result))
 
