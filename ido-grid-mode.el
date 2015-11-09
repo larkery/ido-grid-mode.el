@@ -213,6 +213,13 @@ around. Scrolling always happens at the top left or bottom right."
   :type 'boolean
   :group 'ido-grid-mode)
 
+(defcustom ido-grid-mode-jump nil
+  "If t, use C-0 to C-9 to quickly select matches."
+  :type '(choice (const :tag "disabled" nil)
+                 (const :tag "with labels" label)
+                 (const :tag "without labels" quiet))
+  :group 'ido-grid-mode)
+
 ;; vars
 (defvar ido-grid-mode-rows 0
   "The number of rows displayed last time the grid was presented.")
@@ -411,6 +418,9 @@ rows or columns."
           base-width)
       (string-width s))))
 
+(defun ido-grid-mode-string-width-plus-2 (s)
+  (+ 2 (ido-grid-mode-string-width s)))
+
 (cl-defun ido-grid-mode-gen-grid (items
                                   &key
                                   name
@@ -421,7 +431,9 @@ NAME will be used to turn ITEMS into strings, and the DECORATE to fontify them b
 Modifies `ido-grid-mode-rows', `ido-grid-mode-columns', `ido-grid-mode-count' and sometimes `ido-grid-mode-offset' as a side-effect, sorry."
   (let* ((row-padding (make-list (length ido-grid-mode-prefix) 32))
          (names (ido-grid-mode-mapcar name items))
-         (lengths (ido-grid-mode-mapcar #'ido-grid-mode-string-width names))
+         (lengths (ido-grid-mode-mapcar (if (eq 'label ido-grid-mode-jump)
+                                            #'ido-grid-mode-string-width-plus-2
+                                          #'ido-grid-mode-string-width) names))
          (padded-width (- max-width (length row-padding)))
          (col-widths (or (ido-grid-mode-count-columns lengths padded-width)
                          (make-vector 1 padded-width)))
@@ -602,6 +614,14 @@ groups, add the face to all of S."
          (max-width (- (window-body-width (minibuffer-window)) 1))
          (decorator (lambda (name item _row _column offset)
                       (concat
+                       (if (eq 'label ido-grid-mode-jump)
+                           (if (< 0 offset 11)
+                               (concat (let ((s (number-to-string (% offset 10))) )
+                                         (add-face-text-property 0 1 'shadow nil s)
+                                         s)
+                                       " ")
+                             "  ")
+                         "")
                        (let ((name (substring name 0))
                              (l (length name)))
                          ;; copy the name so we can add faces to it
@@ -903,6 +923,15 @@ different, ignoring rotations."
         resize-mini-windows t
         max-mini-window-height (max max-mini-window-height
                                     (1+ ido-grid-mode-max-rows)))
+
+  (when ido-grid-mode-jump
+    (dotimes (x 10)
+      (define-key ido-completion-map (kbd (format "C-%d" x))
+        (lambda ()
+          (interactive)
+          (setq ido-grid-mode-offset (if (zerop x) 10 x))
+          (ido-exit-minibuffer)
+          ))))
 
   (dolist (k ido-grid-mode-keys)
     (cl-case k
