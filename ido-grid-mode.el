@@ -418,8 +418,18 @@ rows or columns."
           base-width)
       (string-width s))))
 
-(defun ido-grid-mode-string-width-plus-2 (s)
-  (+ 2 (ido-grid-mode-string-width s)))
+(defun ido-grid-mode-padding-and-label (offset row col indicator-row row-padding)
+  (let ((result
+         (if (zerop col)
+             (if (= row indicator-row) ido-grid-mode-prefix row-padding)
+           ido-grid-mode-padding)))
+    (when (and (eq ido-grid-mode-jump 'label)
+               (< 0 offset 11))
+      (setq result (substring result 0))
+      (aset result (- (length result) 2) (+ ?0 (% offset 10)))
+      (add-face-text-property (- (length result) 2) (- (length result) 1) 'shadow nil result))
+
+    result))
 
 (cl-defun ido-grid-mode-gen-grid (items
                                   &key
@@ -429,11 +439,9 @@ rows or columns."
   "Generate string which lays out the given ITEMS to fit in MAX-WIDTH. Also refers to `ido-grid-min-rows' and `ido-grid-max-rows', etc.
 NAME will be used to turn ITEMS into strings, and the DECORATE to fontify them based on their location and name.
 Modifies `ido-grid-mode-rows', `ido-grid-mode-columns', `ido-grid-mode-count' and sometimes `ido-grid-mode-offset' as a side-effect, sorry."
-  (let* ((row-padding (make-list (length ido-grid-mode-prefix) 32))
+  (let* ((row-padding (make-string (length ido-grid-mode-prefix) ?\ ))
          (names (ido-grid-mode-mapcar name items))
-         (lengths (ido-grid-mode-mapcar (if (eq 'label ido-grid-mode-jump)
-                                            #'ido-grid-mode-string-width-plus-2
-                                          #'ido-grid-mode-string-width) names))
+         (lengths (ido-grid-mode-mapcar #'ido-grid-mode-string-width names))
          (padded-width (- max-width (length row-padding)))
          (col-widths (or (ido-grid-mode-count-columns lengths padded-width)
                          (make-vector 1 padded-width)))
@@ -468,11 +476,7 @@ Modifies `ido-grid-mode-rows', `ido-grid-mode-columns', `ido-grid-mode-count' an
     (if (ido-grid-mode-row-major)
         ;; this is the row-major code, which is easy
         (while (and names (< row row-count))
-          (push
-           (if (zerop col)
-               (if (= row indicator-row) ido-grid-mode-prefix row-padding)
-             ido-grid-mode-padding)
-           all-rows)
+          (push (ido-grid-mode-padding-and-label index row col indicator-row row-padding) all-rows)
 
           (push (ido-grid-mode-pad (funcall decorate (pop names) (pop items) row col index)
                                    (pop lengths)
@@ -492,15 +496,10 @@ Modifies `ido-grid-mode-rows', `ido-grid-mode-columns', `ido-grid-mode-count' an
           (setq row (% index row-count)
                 col (/ index row-count))
 
-          (push
-           (if (zerop col)
-               (if (= row indicator-row)
-                   ido-grid-mode-prefix row-padding)
-             ido-grid-mode-padding)
+          (push (ido-grid-mode-padding-and-label index row col indicator-row row-padding)
            (elt row-lists (- row-count (1+ row))))
 
-          (push (ido-grid-mode-pad (funcall decorate (pop names) (pop items)
-                                            row col index)
+          (push (ido-grid-mode-pad (funcall decorate (pop names) (pop items) row col index)
                                    (pop lengths)
                                    (aref col-widths col))
                 (elt row-lists (- row-count (1+ row))))
@@ -608,20 +607,21 @@ groups, add the face to all of S."
           ((zerop (length name)) "<empty>")
           (t name))))
 
+;; (if (eq 'label ido-grid-mode-jump)
+;;     (if (< 0 offset 11)
+;;         (concat (let ((s (number-to-string (% offset 10))) )
+;;                   (add-face-text-property 0 1 'shadow nil s)
+;;                   s)
+;;                 " ")
+;;       "  ")
+;;   "")
+
 (defun ido-grid-mode-grid (name)
   "Draw the grid for input NAME."
   (let* ((decoration-regexp (if ido-enable-regexp ido-text (regexp-quote name)))
          (max-width (- (window-body-width (minibuffer-window)) 1))
          (decorator (lambda (name item _row _column offset)
                       (concat
-                       (if (eq 'label ido-grid-mode-jump)
-                           (if (< 0 offset 11)
-                               (concat (let ((s (number-to-string (% offset 10))) )
-                                         (add-face-text-property 0 1 'shadow nil s)
-                                         s)
-                                       " ")
-                             "  ")
-                         "")
                        (let ((name (substring name 0))
                              (l (length name)))
                          ;; copy the name so we can add faces to it
