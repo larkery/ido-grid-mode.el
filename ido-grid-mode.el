@@ -608,6 +608,10 @@ groups, add the face to all of S."
           ((zerop (length name)) "<empty>")
           (t name))))
 
+(defface ido-grid-mode-standard-size
+  `((t (:height ,(face-attribute 'default :height nil t))))
+  "A face which just sets the height to minibuffer text height")
+
 (defun ido-grid-mode-grid (name)
   "Draw the grid for input NAME."
   (let* ((decoration-regexp (if ido-enable-regexp ido-text (regexp-quote name)))
@@ -624,10 +628,15 @@ groups, add the face to all of S."
                          "")
                        (let ((name (substring name 0))
                              (l (length name)))
+                         ;; enforce small size
+
+                         (add-face-text-property 0 l 'ido-grid-mode-standard-size nil name)
+
                          ;; copy the name so we can add faces to it
                          (when (and (/= offset ido-grid-mode-offset) ; directories get ido-subdir
                                     (ido-final-slash name))
                            (add-face-text-property 0 l 'ido-subdir nil name))
+
                          ;; selected item gets special highlight
                          (when (= offset ido-grid-mode-offset)
                            (add-face-text-property 0 l 'ido-first-match nil name))
