@@ -614,13 +614,10 @@ groups, add the face to all of S."
           ((zerop (length name)) "<empty>")
           (t name))))
 
-(defface ido-grid-mode-standard-size
-  `((t (:height ,(face-attribute 'default :height nil t))))
-  "A face which just sets the height to minibuffer text height")
-
 (defun ido-grid-mode-grid (name)
   "Draw the grid for input NAME."
-  (let* ((decoration-regexp (if ido-enable-regexp ido-text (regexp-quote name)))
+  (let* ((standard-height `(:height ,(face-attribute 'default :height nil t)))
+         (decoration-regexp (if ido-enable-regexp ido-text (regexp-quote name)))
          (max-width (- (window-body-width (minibuffer-window)) 1))
          (decorator (lambda (name item _row _column offset)
                       (concat
@@ -628,7 +625,7 @@ groups, add the face to all of S."
                              (l (length name)))
                          ;; enforce small size
 
-                         (add-face-text-property 0 l 'ido-grid-mode-standard-size nil name)
+                         (add-face-text-property 0 l standard-height nil name)
 
                          ;; copy the name so we can add faces to it
                          (when (and (/= offset ido-grid-mode-offset) ; directories get ido-subdir

@@ -107,6 +107,7 @@
    At the moment scrolling the grid a row at a time sometimes makes the cursor jump around when the dimensions of the next layout are different. Similarly, you can scroll right 1 column and just reduce the number of columns if the 'next' column wouldn't fit.
 ** TODO Efficiency improvements
    It works OK on my laptop, but it is irksome that the grid is created so frequently. Most of the time it should be possible to reuse the string and just move the faces around.
+** TODO The merged indicator breaks wrapping
 * See also
 
   - [[https://github.com/creichert/ido-vertical-mode.el][ido-vertical-mode.el]], which this was based on. I rewrote it when it looked like I was starting to break existing behaviour too much.
