@@ -568,7 +568,9 @@ Modifies `ido-grid-mode-rows', `ido-grid-mode-columns', `ido-grid-mode-count' an
     (concat
      (ido-grid-mode-gen-first-line) "\n"
      ido-grid-mode-exact-match-prefix
-     (let ((name (ido-grid-mode-copy-name (car ido-matches))))
+     (let ((standard-height `(:height ,(face-attribute 'default :height nil t)))
+           (name (ido-grid-mode-copy-name (car ido-matches))))
+       (add-face-text-property 0 (length name) standard-height nil name)
        (add-face-text-property
         0 (length name)
         'ido-only-match nil name)
