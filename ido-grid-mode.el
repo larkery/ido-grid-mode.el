@@ -89,12 +89,14 @@
 
 (defcustom ido-grid-mode-max-rows 5
   "The maximum number of rows."
-  :type 'integer
+  :type '(choice (integer :tag "Constant")
+                 (sexp :tag "Something to eval"))
   :group 'ido-grid-mode)
 
 (defcustom ido-grid-mode-min-rows 5
   "The minimum number of rows."
-  :type 'integer
+  :type '(choice (integer :tag "Constant")
+                 (sexp :tag "Something to eval"))
   :group 'ido-grid-mode)
 
 (defcustom ido-grid-mode-order t
@@ -676,8 +678,8 @@ groups, add the face to all of S."
     (when ido-grid-mode-common-match
       (add-face-text-property 0 (length ido-grid-mode-common-match) 'ido-grid-mode-common-match nil ido-grid-mode-common-match))
 
-    (let ((ido-grid-mode-max-rows    (if ido-grid-mode-collapsed 1 ido-grid-mode-max-rows))
-          (ido-grid-mode-min-rows    (if ido-grid-mode-collapsed 1 ido-grid-mode-min-rows))
+    (let ((ido-grid-mode-max-rows    (if ido-grid-mode-collapsed 1 (eval ido-grid-mode-max-rows)))
+          (ido-grid-mode-min-rows    (if ido-grid-mode-collapsed 1 (eval ido-grid-mode-min-rows)))
           (ido-grid-mode-order   (if ido-grid-mode-collapsed 'rows ido-grid-mode-order))
           (ido-grid-mode-jank-rows (if ido-grid-mode-collapsed 0 ido-grid-mode-jank-rows))
           (ido-grid-mode-always-show-min-rows (if ido-grid-mode-collapsed nil ido-grid-mode-always-show-min-rows)))
@@ -928,7 +930,7 @@ different, ignoring rotations."
         ido-grid-mode-old-resize-mini-windows resize-mini-windows
         resize-mini-windows t
         max-mini-window-height (max max-mini-window-height
-                                    (1+ ido-grid-mode-max-rows)))
+                                    (1+ (eval ido-grid-mode-max-rows))))
 
   (when ido-grid-mode-jump
     (dotimes (x 10)
