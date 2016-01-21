@@ -726,9 +726,9 @@ Counts matches, and tells you how many you can see in the grid."
 
          (row   (if (ido-grid-mode-row-major)
                     (/ ido-grid-mode-offset ido-grid-mode-columns)
-                  (% ido-grid-mode-offset ido-grid-mode-rows)))
+                  (% ido-grid-mode-offset (max 1 ido-grid-mode-rows))))
          (col   (if (ido-grid-mode-row-major)
-                    (% ido-grid-mode-offset ido-grid-mode-columns)
+                    (% ido-grid-mode-offset (max 1 ido-grid-mode-columns))
                   (/ ido-grid-mode-offset ido-grid-mode-rows)))
 
          new-offset)
@@ -742,7 +742,7 @@ Counts matches, and tells you how many you can see in the grid."
           (% (if (ido-grid-mode-row-major)
                  (+ col (* row ncols))
                (+ row (* col nrows)))
-             match-count))
+             (max 1 match-count)))
 
     (cond ((< new-offset 0)
            (cl-incf new-offset match-count)
