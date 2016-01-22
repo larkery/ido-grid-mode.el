@@ -863,14 +863,19 @@ It may not be possible to do this unless there is only 1 column."
 match list changes, and will update
 `ido-grid-mode-rotated-matches' if the new `ido-matches' is
 different, ignoring rotations."
-  (let* ((did-something ido-rescan)
+  (let* ((did-something (or ido-rescan ido-use-merged-list))
          (result (apply o rest)))
-    (ido-grid-mode-debug "setting matches")
-    (when (and did-something (not (ido-grid-mode-equal-but-rotated
+    (ido-grid-mode-debug "setting matches, rescan=%s, merged=%s" ido-rescan ido-use-merged-list)
+    (if (and did-something (not (ido-grid-mode-equal-but-rotated
                                    ido-matches
                                    ido-grid-mode-rotated-matches)))
-      (ido-grid-mode-debug "matches changed")
-      (setq ido-grid-mode-rotated-matches (copy-sequence ido-matches)))
+        (progn (ido-grid-mode-debug "matches changed")
+               (setq ido-grid-mode-rotated-matches (copy-sequence ido-matches)))
+      ;; if nothing changed, we are going to do a horrendous thing instead
+      (unless (eq (car ido-matches) (nth ido-grid-mode-offset ido-grid-mode-rotated-matches))
+        (let ((ido-grid-mode-rotated-matches (copy-sequence ido-grid-mode-rotated-matches)))
+          (ido-grid-mode-rotate-matches-to (nth ido-grid-mode-offset ido-grid-mode-rotated-matches))
+          (setq ido-matches ido-grid-mode-rotated-matches))))
 
     result))
 
