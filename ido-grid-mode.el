@@ -253,14 +253,12 @@ around. Scrolling always happens at the top left or bottom right."
       (goto-char (point-max))
       (insert (apply #'format (cons
                                (concat
-                                "%d %d %d %d %s %s :: "
+                                "%dx%d @ %d of %d :: "
                                 fs)
                                (append (list ido-grid-mode-rows
                                              ido-grid-mode-columns
                                              ido-grid-mode-offset
-                                             (length ido-grid-mode-rotated-matches)
-                                             (car ido-matches)
-                                             (car ido-grid-mode-rotated-matches))
+                                             (length ido-grid-mode-rotated-matches))
                                        args))) "\n"))))
 
 ;; offset into the match list. need to reset this when match list is
