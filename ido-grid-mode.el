@@ -46,7 +46,8 @@
 
 ;;; Code:
 
-(eval-when-compile (require 'cl-lib))
+(require 'cl-lib)     ; use function: cl-remove-if
+(require 'cl-seq)     ; use function: cl-position
 (require 'ido)
 
 ;;; The following four variables and the first three comments are lifted
@@ -856,6 +857,7 @@ It may not be possible to do this unless there is only 1 column."
 
         (not x)))))
 
+(defvar ido-use-merged-list)            ; just to prevent byte-compiler warning
 ;; this is not quite right, because rotated matches is not cleared on exit.
 ;; however it seems to work OK
 (defun ido-grid-mode-set-matches (o &rest rest)
@@ -867,8 +869,8 @@ different, ignoring rotations."
          (result (apply o rest)))
     (ido-grid-mode-debug "setting matches, rescan=%s, merged=%s" ido-rescan ido-use-merged-list)
     (if (and did-something (not (ido-grid-mode-equal-but-rotated
-                                   ido-matches
-                                   ido-grid-mode-rotated-matches)))
+                                 ido-matches
+                                 ido-grid-mode-rotated-matches)))
         (progn (ido-grid-mode-debug "matches changed")
                (setq ido-grid-mode-rotated-matches (copy-sequence ido-matches)))
       ;; if nothing changed, we are going to do a horrendous thing instead
